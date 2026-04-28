@@ -1,0 +1,6 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Keep Ollama limited from 06:00 through 18:59 Kyiv time, unlimited from 19:00 through 05:59.
+# Runs every 5 minutes so the correct state is restored after container recreates/restarts.
+*/5 * * * * root /usr/local/sbin/ollama-cpu-window.sh

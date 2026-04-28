@@ -1,0 +1,6 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Server-side Laravel scheduler tick. This must be installed on the production
+# server, not on an operator laptop. The browser is only a control panel.
+* * * * * root docker exec llm_yaprofi_php php /var/www/artisan schedule:run >> /var/log/llm-yaprofi-scheduler.log 2>&1

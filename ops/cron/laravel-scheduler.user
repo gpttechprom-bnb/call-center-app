@@ -1,0 +1,5 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# User crontab variant for the production server.
+* * * * * docker exec llm_yaprofi_php php /var/www/artisan schedule:run >> /tmp/llm-yaprofi-scheduler.log 2>&1
