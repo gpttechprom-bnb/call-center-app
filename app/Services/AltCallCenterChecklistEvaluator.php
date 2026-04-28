@@ -14,6 +14,7 @@ class AltCallCenterChecklistEvaluator
 {
     public const SCENARIO_STATELESS_SINGLE_ITEM = 'stateless_single_item';
     public const SCENARIO_SEQUENTIAL_CHAT = 'sequential_chat';
+    public const SCENARIO_BATCH_SINGLE_PROMPT = 'batch_single_prompt';
 
     private const CHECKLIST_REQUEST_PAUSE_MS = 2000;
     private const RATE_LIMIT_MAX_ATTEMPTS = 5;
@@ -115,6 +116,15 @@ class AltCallCenterChecklistEvaluator
                 $llmSettings,
                 $trace,
             ),
+            self::SCENARIO_BATCH_SINGLE_PROMPT => $this->evaluateChecklistItemsBatchSinglePrompt(
+                $transcriptForEvaluation,
+                $items,
+                $checklist,
+                $timeout,
+                $reporter,
+                $llmSettings,
+                $trace,
+            ),
             default => $this->evaluateChecklistItemsStateless(
                 $transcriptForEvaluation,
                 $items,
@@ -201,6 +211,99 @@ class AltCallCenterChecklistEvaluator
         ]);
 
         return $normalizedItems;
+    }
+
+    /**
+     * @param array<int, array{id:string,label:string,max_points:int}> $items
+     * @param array<string, array<int, string>> $trace
+     * @return array<int, array<string, mixed>>
+     */
+    private function evaluateChecklistItemsBatchSinglePrompt(
+        string $transcriptForEvaluation,
+        array $items,
+        array $checklist,
+        int $timeout,
+        ?callable $reporter,
+        array $llmSettings,
+        array &$trace,
+    ): array {
+        $this->emitReporter($reporter, 'log', [
+            'channel' => 'status',
+            'message' => 'Підготовлено '.count($items).' пункт(ів) чек-листа. Запускаємо пакетний сценарій: один запит із повним транскриптом і всіма питаннями одразу.',
+        ]);
+        $this->emitReporter($reporter, 'phase', [
+            'phase' => 'batch_single_prompt',
+        ]);
+
+        $messages = $this->buildBatchChecklistEvaluationMessages(
+            $transcriptForEvaluation,
+            $items,
+            $checklist,
+            $llmSettings,
+        );
+        $this->emitReporter($reporter, 'prompt', [
+            'system_prompt' => $this->extractSystemPrompt($messages),
+            'prompt' => $this->buildChatPromptPreview($messages),
+        ]);
+
+        $answerReply = $this->requestChat($messages, $timeout, $reporter, $llmSettings);
+        $rawAnswer = trim($this->extractChatMessageContent($answerReply));
+        $this->appendChecklistTrace($trace, 'BATCH', $rawAnswer, $this->extractChatThinking($answerReply), $reporter);
+        $parsedItems = $this->parseBatchChecklistAnswers($rawAnswer, $items);
+
+        if ($parsedItems === null) {
+            $this->emitReporter($reporter, 'phase', [
+                'phase' => 'batch_single_prompt_retry',
+            ]);
+            $this->emitReporter($reporter, 'log', [
+                'channel' => 'warning',
+                'message' => 'Модель повернула невалідний пакетний формат. Повторюємо один запит із вимогою повернути тільки валідний JSON.',
+            ]);
+
+            $retryMessages = $this->buildBatchChecklistEvaluationMessages(
+                $transcriptForEvaluation,
+                $items,
+                $checklist,
+                $llmSettings,
+                $rawAnswer,
+            );
+            $this->emitReporter($reporter, 'prompt', [
+                'system_prompt' => $this->extractSystemPrompt($retryMessages),
+                'prompt' => $this->buildChatPromptPreview($retryMessages),
+            ]);
+
+            $retryReply = $this->requestChat($retryMessages, $timeout, $reporter, $llmSettings);
+            $rawAnswer = trim($this->extractChatMessageContent($retryReply));
+            $this->appendChecklistTrace($trace, 'BATCH-RETRY', $rawAnswer, $this->extractChatThinking($retryReply), $reporter);
+            $parsedItems = $this->parseBatchChecklistAnswers($rawAnswer, $items);
+        }
+
+        if ($parsedItems === null) {
+            throw new RuntimeException('Qwen не змогла повернути валідний пакетний JSON для всіх пунктів чек-листа.');
+        }
+
+        $itemsCount = count($items);
+        foreach ($parsedItems as $index => $parsedItem) {
+            $position = $index + 1;
+            $this->emitReporter($reporter, 'log', [
+                'channel' => ($parsedItem['answer'] ?? '') === 'Так' ? 'success' : 'warning',
+                'message' => ($parsedItem['answer'] ?? '') === 'Так'
+                    ? "Пункт {$position}/{$itemsCount}: у пакетній відповіді отримано «Так». Нараховано {$parsedItem['score']}/{$parsedItem['max_points']}."
+                    : (($parsedItem['answer'] ?? '') === 'Я не знаю'
+                        ? "Пункт {$position}/{$itemsCount}: у пакетній відповіді отримано «я незнаю». Нараховано 0/{$parsedItem['max_points']}."
+                        : "Пункт {$position}/{$itemsCount}: у пакетній відповіді отримано «Ні». Нараховано 0/{$parsedItem['max_points']}."),
+            ]);
+        }
+
+        $this->emitReporter($reporter, 'phase', [
+            'phase' => 'batch_single_prompt_completed',
+        ]);
+        $this->emitReporter($reporter, 'log', [
+            'channel' => 'success',
+            'message' => 'Усі пункти чек-листа оцінено одним пакетним запитом. Формуємо підсумкові бали.',
+        ]);
+
+        return $parsedItems;
     }
 
     /**
@@ -561,6 +664,77 @@ PROMPT;
     }
 
     /**
+     * @param array<int, array{id:string,label:string,max_points:int}> $items
+     * @return array<int, array{role:string,content:string}>
+     */
+    private function buildBatchChecklistEvaluationMessages(
+        string $fullTranscript,
+        array $items,
+        array $checklist = [],
+        array $llmSettings = [],
+        string $previousInvalidReply = '',
+    ): array {
+        return [
+            [
+                'role' => 'system',
+                'content' => $this->buildSystemPrompt($checklist, $llmSettings),
+            ],
+            [
+                'role' => 'user',
+                'content' => $this->buildBatchChecklistEvaluationUserPrompt($fullTranscript, $items, $checklist, $previousInvalidReply),
+            ],
+        ];
+    }
+
+    /**
+     * @param array<int, array{id:string,label:string,max_points:int}> $items
+     */
+    private function buildBatchChecklistEvaluationUserPrompt(
+        string $fullTranscript,
+        array $items,
+        array $checklist = [],
+        string $previousInvalidReply = '',
+    ): string {
+        $checklistName = trim((string) ($checklist['name'] ?? ''));
+        $checklistLabel = $checklistName !== '' ? $checklistName : 'цей чек-лист';
+        $itemsBlock = implode("\n", array_map(
+            static fn (array $item): string => "- {$item['id']}: {$item['label']}",
+            $items,
+        ));
+        $retryBlock = trim($previousInvalidReply) !== ''
+            ? "\n\nПопередня відповідь була невалідною:\n{$previousInvalidReply}\n\nПоверни відповідь ще раз, але тепер строго як валідний JSON без markdown, без пояснень до або після JSON."
+            : '';
+
+        return <<<PROMPT
+Ось повний транскрипт розмови менеджера з клієнтом для оцінювання за чек-листом «{$checklistLabel}»:
+
+{$fullTranscript}
+
+Оціни одразу всі пункти чек-листа нижче:
+{$itemsBlock}
+
+Поверни тільки валідний JSON такого вигляду:
+{
+  "items": [
+    {
+      "item_id": "item_1",
+      "answer": "Так",
+      "comment": "Коротке пояснення українською"
+    }
+  ]
+}
+
+Правила:
+1. Для кожного item_id поверни рівно один об'єкт.
+2. answer може бути тільки: "Так", "Ні" або "Я не знаю".
+3. comment має бути коротким, до 220 символів, українською мовою.
+4. Якщо даних недостатньо або вони суперечливі, став "Я не знаю".
+5. Не пропускай пункти і не змінюй item_id.
+6. Не додавай markdown, коментарі, вступний текст або пояснення поза JSON.{$retryBlock}
+PROMPT;
+    }
+
+    /**
      * @param array{id:string,label:string,max_points:int} $checklistItem
      */
     private function buildSequentialChecklistQuestionPrompt(
@@ -577,6 +751,70 @@ PROMPT;
 Пункт чек-листа:
 {$checklistItem['label']}{$retryBlock}
 PROMPT;
+    }
+
+    /**
+     * @param array<int, array{id:string,label:string,max_points:int}> $items
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function parseBatchChecklistAnswers(string $value, array $items): ?array
+    {
+        $payload = $this->decodeJsonObject($value);
+        if (! is_array($payload)) {
+            return null;
+        }
+
+        $responseItems = $payload['items'] ?? null;
+        if (! is_array($responseItems)) {
+            return null;
+        }
+
+        $indexedResponseItems = [];
+        foreach ($responseItems as $responseItem) {
+            if (! is_array($responseItem)) {
+                continue;
+            }
+
+            $itemId = trim((string) ($responseItem['item_id'] ?? ''));
+            if ($itemId === '') {
+                continue;
+            }
+
+            $indexedResponseItems[$itemId] = $responseItem;
+        }
+
+        $normalizedItems = [];
+        foreach ($items as $item) {
+            $responseItem = $indexedResponseItems[$item['id']] ?? null;
+            if (! is_array($responseItem)) {
+                return null;
+            }
+
+            $parsedAnswer = $this->parseChecklistAnswer(trim((string) ($responseItem['answer'] ?? '')));
+            $comment = trim((string) ($responseItem['comment'] ?? ''));
+            if ($parsedAnswer === null) {
+                $parsedAnswer = $this->parseChecklistAnswer($comment);
+            }
+            if ($parsedAnswer === null) {
+                return null;
+            }
+
+            $verdict = $parsedAnswer['verdict'];
+            $reason = $comment !== '' ? $comment : ($parsedAnswer['reason'] ?? '');
+            $score = $verdict === 'Так' ? (int) $item['max_points'] : 0;
+
+            $normalizedItems[] = [
+                'id' => $item['id'],
+                'label' => $item['label'],
+                'max_points' => (int) $item['max_points'],
+                'score' => $score,
+                'percentage' => $score > 0 ? 100 : 0,
+                'answer' => $verdict,
+                'comment' => $this->buildItemComment($verdict, $reason),
+            ];
+        }
+
+        return $normalizedItems;
     }
 
     /**
@@ -1098,9 +1336,11 @@ PROMPT;
         $customSystemPrompt = trim((string) ($llmSettings['system_prompt'] ?? ''));
         $scenario = $this->evaluationScenario($llmSettings);
 
-        $defaultPrompt = $scenario === self::SCENARIO_SEQUENTIAL_CHAT
-            ? CallCenterLlmPrompts::sequentialChatChecklistSystemPrompt()
-            : CallCenterLlmPrompts::statelessChecklistItemSystemPrompt();
+        $defaultPrompt = match ($scenario) {
+            self::SCENARIO_SEQUENTIAL_CHAT => CallCenterLlmPrompts::sequentialChatChecklistSystemPrompt(),
+            self::SCENARIO_BATCH_SINGLE_PROMPT => CallCenterLlmPrompts::structuredEvaluationSystemPrompt(),
+            default => CallCenterLlmPrompts::statelessChecklistItemSystemPrompt(),
+        };
 
         if ($customSystemPrompt !== '') {
             if (
@@ -1113,6 +1353,16 @@ PROMPT;
             if (
                 $scenario === self::SCENARIO_SEQUENTIAL_CHAT
                 && $this->isLegacyStatelessSystemPrompt($customSystemPrompt)
+            ) {
+                return $defaultPrompt.$additionalInstructions;
+            }
+
+            if (
+                $scenario === self::SCENARIO_BATCH_SINGLE_PROMPT
+                && (
+                    $this->isLegacySequentialSystemPrompt($customSystemPrompt)
+                    || $this->isLegacyStatelessSystemPrompt($customSystemPrompt)
+                )
             ) {
                 return $defaultPrompt.$additionalInstructions;
             }
@@ -1150,8 +1400,32 @@ PROMPT;
 
         return match ($normalized) {
             'sequential', 'sequential_chat', 'chat', 'dialog', 'dialogue' => self::SCENARIO_SEQUENTIAL_CHAT,
+            'batch_single_prompt', 'batch', 'single_prompt_batch', 'single_prompt', 'all_items_once', 'all_at_once' => self::SCENARIO_BATCH_SINGLE_PROMPT,
             default => self::SCENARIO_STATELESS_SINGLE_ITEM,
         };
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeJsonObject(string $value): ?array
+    {
+        $decoded = json_decode($value, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        $trimmed = trim($value);
+        $trimmed = preg_replace('/^```(?:json)?\s*/u', '', $trimmed) ?? $trimmed;
+        $trimmed = preg_replace('/\s*```$/u', '', $trimmed) ?? $trimmed;
+
+        if (preg_match('/\{.*\}/su', $trimmed, $matches) !== 1) {
+            return null;
+        }
+
+        $decoded = json_decode($matches[0], true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 
     private function resolveTranscriptForEvaluation(array $transcription): string
