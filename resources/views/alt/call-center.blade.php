@@ -2970,8 +2970,20 @@
             flex-wrap: wrap;
         }
 
+        .transcription-result-title-wrap {
+            display: grid;
+            gap: 4px;
+        }
+
         .transcription-result-head h2 {
             margin-bottom: 0;
+        }
+
+        .transcription-result-subtitle {
+            margin: 0;
+            color: #8a97b2;
+            font-size: 11px;
+            line-height: 1.2;
         }
 
         .transcription-result-toolbar {
@@ -5514,7 +5526,10 @@
 
                         <section class="transcription-panel transcription-result-panel">
                             <div class="transcription-result-head">
-                                <h2>Результат транскрибації</h2>
+                                <div class="transcription-result-title-wrap">
+                                    <h2>Результат транскрибації</h2>
+                                    <p class="transcription-result-subtitle">Перевірка орфографії</p>
+                                </div>
                                 <div class="transcription-result-toolbar">
                                     <label class="transcription-toggle" title="Коли вимкнено, після Whisper текст одразу піде в оцінювання без AI-правок.">
                                         <input id="transcriptionAiEnabledHeader" type="checkbox">
@@ -5849,13 +5864,23 @@
 	                            <h3>Платні LLM-провайдери</h3>
 	                            <p>Додайте ключі для хмарних моделей. Порожнє поле не видаляє вже збережений ключ.</p>
 	                        </div>
+                            <div class="section-head-actions">
+                                <button
+                                    type="button"
+                                    class="ghost-button settings-whisper-toggle"
+                                    id="settingsApiKeysToggle"
+                                    aria-expanded="false"
+                                    aria-controls="settingsApiKeysBody"
+                                >Розгорнути</button>
+                            </div>
 	                    </div>
 
-	                    <select id="settingsProvider" hidden></select>
-	                    <select id="settingsModel" hidden></select>
+                        <div class="settings-whisper-body" id="settingsApiKeysBody" hidden>
+	                        <select id="settingsProvider" hidden></select>
+	                        <select id="settingsModel" hidden></select>
 
-	                    <div class="settings-api-keys-grid">
-	                        <div class="settings-provider-list">
+	                        <div class="settings-api-keys-grid">
+	                            <div class="settings-provider-list">
 	                            <div class="settings-provider-row" data-settings-provider-row="ollama">
 	                                <div class="settings-provider-button-cell">
 	                                    <span class="settings-provider-column-label">Провайдер</span>
@@ -5937,14 +5962,68 @@
 	                                    <select class="text-select settings-provider-model-list" id="settingsGeminiModelSelect" data-settings-provider-model="gemini"></select>
 	                                </div>
 	                            </div>
+	                            </div>
 	                        </div>
-	                    </div>
 
-	                    <div class="form-actions">
-	                        <button type="button" class="primary-button" id="settingsApiKeysSaveButton">Зберегти API ключі</button>
-	                        <div class="settings-feedback" id="settingsApiKeysFeedback">Ключі зберігаються на сервері. На сторінці показується тільки безпечна маска ключа.</div>
-	                    </div>
+	                        <div class="form-actions">
+	                            <button type="button" class="primary-button" id="settingsApiKeysSaveButton">Зберегти API ключі</button>
+	                            <div class="settings-feedback" id="settingsApiKeysFeedback">Ключі зберігаються на сервері. На сторінці показується тільки безпечна маска ключа.</div>
+	                        </div>
+                        </div>
 	                </section>
+
+                    <section class="table-card section-card settings-api-keys-card">
+                        <div class="settings-api-keys-head">
+                            <div>
+                                <div class="card-kicker">Binotel</div>
+                                <h3>Binotel API ключ</h3>
+                                <p>Ключ уже підключений через код. Тут показується його безпечна маска, щоб було видно, що доступ налаштовано.</p>
+                            </div>
+                            <div class="section-head-actions">
+                                <button
+                                    type="button"
+                                    class="ghost-button settings-whisper-toggle"
+                                    id="settingsBinotelToggle"
+                                    aria-expanded="false"
+                                    aria-controls="settingsBinotelBody"
+                                >Розгорнути</button>
+                            </div>
+                        </div>
+
+                        <div class="settings-whisper-body" id="settingsBinotelBody" hidden>
+                            <div class="settings-api-keys-grid">
+                                <div class="settings-provider-list">
+                                    <div class="settings-provider-row is-active">
+                                        <div class="settings-provider-button-cell">
+                                            <span class="settings-provider-column-label">Сервіс</span>
+                                            <button type="button" class="ghost-button settings-provider-button" disabled>Binotel</button>
+                                        </div>
+                                        <div class="settings-provider-key-cell">
+                                            <span class="settings-api-key-status">
+                                                {{ ($binotelFeedbackApiKeyConfigured ?? false) ? 'Binotel: ключ збережено у конфігурації.' : 'Binotel ключ ще не додано.' }}
+                                            </span>
+                                            <div class="settings-provider-key-control">
+                                                <input
+                                                    class="text-input"
+                                                    id="settingsBinotelApiKey"
+                                                    type="text"
+                                                    readonly
+                                                    value="{{ $binotelFeedbackApiKeyPreview ?? '' }}"
+                                                    placeholder="{{ ($binotelFeedbackApiKeyConfigured ?? false) ? 'Ключ уже збережено' : 'Ключ не налаштовано' }}"
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="settings-provider-model-cell">
+                                            <label for="settingsBinotelApiKey">Стан</label>
+                                            <div class="settings-api-key-status">
+                                                {{ ($binotelFeedbackApiKeyConfigured ?? false) ? 'Після наявності ключа сервер може тягнути дзвінки з Binotel.' : 'Додайте ключ у конфігурацію, щоб сервер міг тягнути дзвінки.' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 	            </div>
 	        </section>
     </main>
@@ -6248,6 +6327,22 @@
                         <li><strong>Мінус:</strong> модель зберігає контекст попередніх відповідей у межах одного чату, тому інколи може сильніше залежати від попереднього ходу діалогу.</li>
                     </ul>
                 </label>
+
+                <label class="transcription-scenario-card" data-llm-scenario-card="batch_single_prompt">
+                    <input type="radio" name="transcriptionLlmScenario" value="batch_single_prompt">
+                    <div class="transcription-scenario-card-head">
+                        <div>
+                            <h3 class="transcription-scenario-card-title">3. Один запит на весь чек-лист</h3>
+                            <p class="transcription-scenario-card-subtitle">Текст дзвінка і всі пункти чек-листа надсилаються моделі одразу одним пакетом.</p>
+                        </div>
+                        <span class="transcription-scenario-card-badge">Пакетна відповідь</span>
+                    </div>
+                    <ul class="transcription-scenario-points">
+                        <li><strong>Як працює:</strong> скрипт передає транскрипт і весь список питань відразу, а модель повертає відповіді по кожному пункту у структурованому вигляді.</li>
+                        <li><strong>Перевага:</strong> найменше звернень до моделі, швидше на довгих чек-листах і в фоновій черзі.</li>
+                        <li><strong>Мінус:</strong> якщо модель зламає формат одразу для всього пакета, доведеться перезапитувати весь список питань повторно.</li>
+                    </ul>
+                </label>
             </div>
 
             <div class="confirm-modal-actions">
@@ -6498,6 +6593,11 @@
             label: "Послідовний чат",
             shortLabel: "Послідовний чат",
             description: "Текст дзвінка додається один раз на старті, а далі питання йдуть по черзі в одному чаті."
+        },
+        batch_single_prompt: {
+            label: "Один запит на весь чек-лист",
+            shortLabel: "Один запит",
+            description: "Текст дзвінка і всі питання чек-листа передаються моделі одним пакетом, а у відповідь очікується набір відповідей по всіх пунктах."
         }
     };
     const transcriptionLanguageLabels = {
@@ -6804,6 +6904,10 @@
     const settingsFeedback = document.getElementById("settingsFeedback");
     const settingsWhisperToggle = document.getElementById("settingsWhisperToggle");
     const settingsWhisperBody = document.getElementById("settingsWhisperBody");
+    const settingsApiKeysToggle = document.getElementById("settingsApiKeysToggle");
+    const settingsApiKeysBody = document.getElementById("settingsApiKeysBody");
+    const settingsBinotelToggle = document.getElementById("settingsBinotelToggle");
+    const settingsBinotelBody = document.getElementById("settingsBinotelBody");
     const settingsOpenAiApiKey = document.getElementById("settingsOpenAiApiKey");
     const settingsAnthropicApiKey = document.getElementById("settingsAnthropicApiKey");
     const settingsOpenRouterApiKey = document.getElementById("settingsOpenRouterApiKey");
@@ -6859,6 +6963,8 @@
     const transcriptionAiSettingsStorageKey = `call-center.ai-settings.transcription-result:${window.location.pathname}`;
     const transcriptionLlmSettingsStorageKey = `call-center.llm-settings.evaluation:${window.location.pathname}`;
     const settingsWhisperPanelStorageKey = `call-center.settings-whisper-panel:${window.location.pathname}`;
+    const settingsApiKeysPanelStorageKey = `call-center.settings-api-keys-panel:${window.location.pathname}`;
+    const settingsBinotelPanelStorageKey = `call-center.settings-binotel-panel:${window.location.pathname}`;
     const automationScheduleDayLabels = ["Понеділок", "Вівторок", "Середа", "Четвер", "Пʼятниця", "Субота", "Неділя"];
     const defaultTranscriptionAiPrompt = "Знайди тільки точкові виправлення в транскрибації: очевидні орфографічні помилки, російські слова, які треба замінити українськими відповідниками, і неіснуючі або неправильно розпізнані слова, якщо правильний варіант очевидний з контексту. Не змінюй сенс, структуру реплік, імена, телефони, цифри, артикули та бренди.";
     const defaultTranscriptionResultPlaceholder = transcriptionResultText?.getAttribute("placeholder") || "Після запуску тут з'явиться результат транскрибації.";
@@ -9051,6 +9157,17 @@
 
         if (normalized === "sequential_chat" || normalized === "sequential" || normalized === "chat") {
             return "sequential_chat";
+        }
+
+        if (
+            normalized === "batch_single_prompt"
+            || normalized === "batch"
+            || normalized === "single_prompt_batch"
+            || normalized === "single_prompt"
+            || normalized === "all_items_once"
+            || normalized === "all_at_once"
+        ) {
+            return "batch_single_prompt";
         }
 
         return "stateless_single_item";
@@ -14116,6 +14233,14 @@ TEXT
             return "Послідовний чат: спочатку передаємо транскрипт і готуємо модель до оцінювання пунктів по черзі.";
         }
 
+        if (normalizedPhase === "batch_single_prompt") {
+            return "Пакетний сценарій: передаємо транскрипт і весь чек-лист одним запитом, очікуємо структуровані відповіді по всіх пунктах.";
+        }
+
+        if (normalizedPhase === "batch_single_prompt_retry") {
+            return "Пакетний сценарій: повторюємо один запит з вимогою повернути валідний JSON по всіх пунктах чек-листа.";
+        }
+
         if (sequentialQuestionMatch) {
             return `Послідовний чат: ставимо пункт ${sequentialQuestionMatch[1]} із ${sequentialQuestionMatch[2]} в межах одного діалогу.`;
         }
@@ -14130,6 +14255,10 @@ TEXT
 
         if (normalizedPhase === "sequential_completed") {
             return "Усі пункти чек-листа оцінено в одному послідовному чаті. Формуємо фінальні бали.";
+        }
+
+        if (normalizedPhase === "batch_single_prompt_completed") {
+            return "Усі пункти чек-листа оцінено одним пакетним запитом. Формуємо фінальні бали.";
         }
 
         if (normalizedPhase === "prompt_prepared") {
@@ -14486,6 +14615,62 @@ TEXT
 
         try {
             window.localStorage?.setItem(settingsWhisperPanelStorageKey, isExpanded ? "expanded" : "collapsed");
+        } catch (error) {
+            // The panel still works without persisted state.
+        }
+    }
+
+    function readSettingsApiKeysPanelExpanded() {
+        try {
+            return window.localStorage?.getItem(settingsApiKeysPanelStorageKey) === "expanded";
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function setSettingsApiKeysPanelExpanded(isExpanded, shouldStore = true) {
+        if (!settingsApiKeysToggle || !settingsApiKeysBody) {
+            return;
+        }
+
+        settingsApiKeysToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+        settingsApiKeysToggle.textContent = isExpanded ? "Згорнути" : "Розгорнути";
+        settingsApiKeysBody.hidden = !isExpanded;
+
+        if (!shouldStore) {
+            return;
+        }
+
+        try {
+            window.localStorage?.setItem(settingsApiKeysPanelStorageKey, isExpanded ? "expanded" : "collapsed");
+        } catch (error) {
+            // The panel still works without persisted state.
+        }
+    }
+
+    function readSettingsBinotelPanelExpanded() {
+        try {
+            return window.localStorage?.getItem(settingsBinotelPanelStorageKey) === "expanded";
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function setSettingsBinotelPanelExpanded(isExpanded, shouldStore = true) {
+        if (!settingsBinotelToggle || !settingsBinotelBody) {
+            return;
+        }
+
+        settingsBinotelToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+        settingsBinotelToggle.textContent = isExpanded ? "Згорнути" : "Розгорнути";
+        settingsBinotelBody.hidden = !isExpanded;
+
+        if (!shouldStore) {
+            return;
+        }
+
+        try {
+            window.localStorage?.setItem(settingsBinotelPanelStorageKey, isExpanded ? "expanded" : "collapsed");
         } catch (error) {
             // The panel still works without persisted state.
         }
@@ -16790,9 +16975,19 @@ TEXT
     });
 
     setSettingsWhisperPanelExpanded(readSettingsWhisperPanelExpanded(), false);
+    setSettingsApiKeysPanelExpanded(readSettingsApiKeysPanelExpanded(), false);
+    setSettingsBinotelPanelExpanded(readSettingsBinotelPanelExpanded(), false);
 
     settingsWhisperToggle?.addEventListener("click", () => {
         setSettingsWhisperPanelExpanded(settingsWhisperToggle.getAttribute("aria-expanded") !== "true");
+    });
+
+    settingsApiKeysToggle?.addEventListener("click", () => {
+        setSettingsApiKeysPanelExpanded(settingsApiKeysToggle.getAttribute("aria-expanded") !== "true");
+    });
+
+    settingsBinotelToggle?.addEventListener("click", () => {
+        setSettingsBinotelPanelExpanded(settingsBinotelToggle.getAttribute("aria-expanded") !== "true");
     });
 
     settingsLlmTemperature?.addEventListener("input", () => {

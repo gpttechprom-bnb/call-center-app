@@ -175,7 +175,7 @@ class AltCallCenterAutomationController extends Controller
             'evaluation.checklist_routing_rules.*.interaction_number' => ['required_with:evaluation.checklist_routing_rules', 'integer', 'between:1,20'],
             'evaluation.checklist_routing_rules.*.direction' => ['nullable', 'string', 'in:in,out,any'],
             'evaluation.model' => ['nullable', 'string', 'max:255'],
-            'evaluation.evaluation_scenario' => ['nullable', 'string', 'in:stateless_single_item,sequential_chat'],
+            'evaluation.evaluation_scenario' => ['nullable', 'string', 'in:stateless_single_item,sequential_chat,batch_single_prompt'],
             'evaluation.system_prompt' => ['nullable', 'string', 'max:20000'],
             'evaluation.system_prompt_by_model' => ['nullable', 'array'],
             'evaluation.system_prompt_by_model.*' => ['nullable', 'string', 'max:20000'],

@@ -45,10 +45,32 @@ class AltCallCenterController extends Controller
                 'automationState' => $automationStore->stateWithWindow($automationWindow),
                 'transcriptionLlmSystemPrompt' => CallCenterLlmPrompts::sequentialEvaluationSystemPrompt(),
                 'activeEvaluationJob' => $activeJob !== null ? $jobStore->publicPayload($activeJob) : null,
+                'binotelFeedbackApiKeyPreview' => $this->maskApiKey(
+                    trim((string) config('binotel.feedback.api_key', ''))
+                ),
+                'binotelFeedbackApiKeyConfigured' => trim((string) config('binotel.feedback.api_key', '')) !== '',
             ]
         ), 200, [
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
         ]);
+    }
+
+    private function maskApiKey(string $value): string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        $length = mb_strlen($trimmed, 'UTF-8');
+        if ($length <= 4) {
+            return str_repeat('•', $length);
+        }
+
+        $start = mb_substr($trimmed, 0, min(4, $length), 'UTF-8');
+        $end = mb_substr($trimmed, max(0, $length - 3), null, 'UTF-8');
+
+        return $start.str_repeat('•', max(4, $length - 7)).$end;
     }
 }

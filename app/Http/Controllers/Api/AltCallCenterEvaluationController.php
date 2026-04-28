@@ -39,7 +39,7 @@ class AltCallCenterEvaluationController extends Controller
             'llm_settings.provider' => ['nullable', 'string', 'max:120'],
             'llm_settings.model' => ['nullable', 'string', 'max:255'],
             'llm_settings.run_id' => ['nullable', 'string', 'max:120'],
-            'llm_settings.evaluation_scenario' => ['nullable', 'string', 'in:stateless_single_item,sequential_chat'],
+            'llm_settings.evaluation_scenario' => ['nullable', 'string', 'in:stateless_single_item,sequential_chat,batch_single_prompt'],
             'llm_settings.system_prompt' => ['nullable', 'string', 'max:20000'],
             'llm_settings.thinking_enabled' => ['nullable', 'boolean'],
             'llm_settings.temperature' => ['nullable', 'numeric', 'between:0,2'],
