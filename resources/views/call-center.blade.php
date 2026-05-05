@@ -1356,6 +1356,14 @@
             backdrop-filter: blur(5px);
         }
 
+        body.is-page-scroll-locked {
+            position: fixed;
+            left: 0;
+            right: 0;
+            width: 100%;
+            overflow-y: scroll;
+        }
+
         .modal-card {
             width: min(760px, 100%);
             max-height: 88vh;
@@ -4394,6 +4402,7 @@
     let hasCustomDateRange = false;
     let isChecklistEditorDirty = false;
     let isSettingsDirty = false;
+    let pageScrollLockY = 0;
     let isBootstrapRefreshing = false;
     let lastBootstrapSyncAt = Date.now();
     let activeModalKind = null;
@@ -6762,14 +6771,35 @@ TEXT
         document.addEventListener("pointercancel", handleCallsTableColumnResizeCancel);
     }
 
+    function setPageScrollLocked(locked) {
+        if (locked) {
+            if (document.body.classList.contains("is-page-scroll-locked")) {
+                return;
+            }
+
+            pageScrollLockY = window.scrollY || window.pageYOffset || 0;
+            document.body.classList.add("is-page-scroll-locked");
+            document.body.style.top = `-${pageScrollLockY}px`;
+            return;
+        }
+
+        if (!document.body.classList.contains("is-page-scroll-locked")) {
+            return;
+        }
+
+        document.body.classList.remove("is-page-scroll-locked");
+        document.body.style.top = "";
+        window.scrollTo(0, pageScrollLockY);
+    }
+
     function syncBodyScrollLock() {
-        document.body.style.overflow = (
+        setPageScrollLocked(
             !callModal.hidden
             || !checklistDeleteModal.hidden
             || !checklistExportModal.hidden
             || !transcriptionLlmSettingsModal.hidden
             || !transcriptionAiSettingsModal.hidden
-        ) ? "hidden" : "";
+        );
     }
 
     function openModal(kicker, title, subtitle, body) {

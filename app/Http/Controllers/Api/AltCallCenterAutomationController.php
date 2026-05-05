@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BinotelApiCallCompleted;
+use App\Services\AltCallCenterAutoProcessor;
+use App\Services\AltCallCenterAutomationCalendarStatsService;
 use App\Services\AltCallCenterAutomationDispatcher;
 use App\Services\AltCallCenterAutomationStopper;
 use App\Services\BinotelCallAudioCacheService;
@@ -25,6 +27,30 @@ class AltCallCenterAutomationController extends Controller
     ): JsonResponse {
         return response()->json([
             'automation' => $automationStore->stateWithWindow($automationWindow),
+        ]);
+    }
+
+    public function calendarStats(
+        Request $request,
+        AltCallCenterAutomationCalendarStatsService $calendarStatsService,
+    ): JsonResponse {
+        $rawMonth = trim((string) $request->query('month', ''));
+
+        if (! preg_match('/^\d{4}-\d{2}$/', $rawMonth)) {
+            $currentMonth = CarbonImmutable::now((string) config('binotel.timezone', 'Europe/Kyiv'));
+            $rawMonth = $currentMonth->format('Y-m');
+        }
+
+        $focusDate = trim((string) $request->query('focus_date', ''));
+        if ($focusDate !== '' && preg_match('/^\d{2}\.\d{2}\.\d{4}$/', $focusDate) !== 1) {
+            $focusDate = '';
+        }
+
+        [$year, $month] = array_map('intval', explode('-', $rawMonth, 2));
+        $month = max(1, min(12, $month));
+
+        return response()->json([
+            'stats' => $calendarStatsService->buildMonthStats($year, $month, $focusDate !== '' ? $focusDate : null),
         ]);
     }
 
@@ -72,6 +98,8 @@ class AltCallCenterAutomationController extends Controller
         BinotelApiCallCompleted $call,
         AltCallCenterAutomationStore $automationStore,
         AltCallCenterAutomationDispatcher $dispatcher,
+        AltCallCenterAutoProcessor $autoProcessor,
+        Request $request,
     ): JsonResponse {
         $call->loadMissing('feedback');
 
@@ -79,6 +107,21 @@ class AltCallCenterAutomationController extends Controller
         if ($generalCallId === '') {
             return response()->json([
                 'message' => 'У цього дзвінка немає General Call ID, тому примусовий запуск недоступний.',
+            ], 422);
+        }
+
+        $continueWithoutCrm = (bool) $request->boolean('continue_without_crm');
+        $eligibility = $autoProcessor->validateForcedCall($call, $continueWithoutCrm);
+        if (! ($eligibility['eligible'] ?? false)) {
+            return response()->json([
+                'message' => (string) ($eligibility['message'] ?? 'Цей дзвінок не можна примусово обробити.'),
+                'code' => (string) ($eligibility['code'] ?? ''),
+                'call' => [
+                    'id' => $call->id,
+                    'generalCallId' => $generalCallId,
+                    'altAutoStatus' => $call->alt_auto_status,
+                    'altAutoError' => (string) ($eligibility['message'] ?? ''),
+                ],
             ], 422);
         }
 
@@ -170,6 +213,7 @@ class AltCallCenterAutomationController extends Controller
             'ai_rewrite.generation_settings_by_model' => ['nullable', 'array'],
             'evaluation' => ['nullable', 'array'],
             'evaluation.enabled' => ['nullable', 'boolean'],
+            'evaluation.minimum_duration_minutes' => ['nullable', 'integer', 'between:0,10'],
             'evaluation.checklist_routing_rules' => ['nullable', 'array'],
             'evaluation.checklist_routing_rules.*.checklist_id' => ['required_with:evaluation.checklist_routing_rules', 'string', 'max:120'],
             'evaluation.checklist_routing_rules.*.interaction_number' => ['required_with:evaluation.checklist_routing_rules', 'integer', 'between:1,20'],
@@ -378,6 +422,9 @@ class AltCallCenterAutomationController extends Controller
         if ($scenario !== '') {
             $normalized['evaluation_scenario'] = $scenario;
         }
+
+        $minimumDurationMinutes = max(0, min(10, (int) ($settings['minimum_duration_minutes'] ?? 0)));
+        $normalized['minimum_duration_minutes'] = $minimumDurationMinutes;
 
         $routingRules = $this->normalizeChecklistRoutingRules(
             is_array($settings['checklist_routing_rules'] ?? null) ? $settings['checklist_routing_rules'] : [],

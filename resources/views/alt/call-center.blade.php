@@ -466,6 +466,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 18px;
+            position: relative;
             padding: 14px 20px;
             border-bottom: 1px solid #e3e8f3;
             background: linear-gradient(180deg, #fbfdff, #f2f7ff);
@@ -541,6 +542,8 @@
             align-items: center;
             justify-content: flex-end;
             flex: 0 0 auto;
+            position: relative;
+            z-index: 20;
         }
 
         .filter-panel {
@@ -549,6 +552,8 @@
             align-items: center;
             justify-content: flex-end;
             gap: 8px;
+            position: relative;
+            z-index: 21;
             padding: 0;
             border: 0;
             border-radius: 0;
@@ -605,6 +610,7 @@
         .filter-date-field {
             position: relative;
             min-width: 260px;
+            z-index: 22;
         }
 
         .filter-label {
@@ -846,18 +852,20 @@
             position: absolute;
             top: calc(100% + 10px);
             right: 0;
-            z-index: 30;
-            width: 560px;
+            z-index: 200;
+            width: min(688px, calc(100vw - var(--sidebar-width) - 40px));
             border: 1px solid #dbe2f0;
             border-radius: 18px;
             background: #ffffff;
             box-shadow: 0 26px 60px rgba(36, 28, 66, 0.16);
             overflow: hidden;
+            pointer-events: auto;
+            isolation: isolate;
         }
 
         .date-picker-top {
             display: grid;
-            grid-template-columns: 44px 1fr 1fr 44px;
+            grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1fr) 36px;
             gap: 0;
             align-items: start;
             padding: 18px 18px 0;
@@ -881,7 +889,8 @@
         }
 
         .month-box {
-            padding: 0 14px 16px;
+            min-width: 0;
+            padding: 0 12px 16px;
         }
 
         .month-box + .month-box {
@@ -915,6 +924,8 @@
         }
 
         .calendar-day {
+            position: relative;
+            z-index: 1;
             height: 32px;
             border: 0;
             border-radius: 8px;
@@ -922,6 +933,7 @@
             color: #5f667b;
             font-size: 14px;
             cursor: pointer;
+            pointer-events: auto;
         }
 
         .calendar-day:hover {
@@ -1120,6 +1132,7 @@
 
         td {
             padding: 6px 12px;
+            overflow: hidden;
         }
 
         th:last-child,
@@ -1135,6 +1148,20 @@
 
         .calls-table th[data-call-column] {
             padding-right: 20px;
+            cursor: grab;
+        }
+
+        .calls-table th[data-call-column].is-column-drag-source {
+            opacity: 0.68;
+            cursor: grabbing;
+        }
+
+        .calls-table th[data-call-column].is-column-drop-before {
+            box-shadow: inset 4px 0 0 rgba(255, 255, 255, 0.96);
+        }
+
+        .calls-table th[data-call-column].is-column-drop-after {
+            box-shadow: inset -4px 0 0 rgba(255, 255, 255, 0.96);
         }
 
         .column-resizer {
@@ -1241,6 +1268,11 @@
             width: 112px;
         }
 
+        .crm-missing-cell {
+            width: 108px;
+            text-align: center;
+        }
+
         .interaction-count-badge {
             display: inline-flex;
             align-items: center;
@@ -1272,6 +1304,27 @@
             transform: translateY(-1px);
         }
 
+        .crm-missing-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        .crm-missing-badge.is-clear {
+            background: #eef2ff;
+            color: #64748b;
+        }
+
         body.is-interaction-history-page .sidebar,
         body.is-interaction-history-page .card-side,
         body.is-interaction-history-page .table-pagination {
@@ -1301,15 +1354,13 @@
 
         body.is-interaction-history-page .table-wrap {
             width: 100%;
+            overflow-x: auto;
+            overflow-y: visible;
         }
 
         body.is-interaction-history-page .calls-table {
-            width: 100% !important;
+            width: max-content !important;
             min-width: 100% !important;
-        }
-
-        body.is-interaction-history-page .calls-table col {
-            width: auto !important;
         }
 
         body.is-interaction-history-page tbody tr,
@@ -1351,6 +1402,27 @@
         .score-cell {
             width: 94px;
             text-align: center;
+        }
+
+        .processed-cell .time-sub,
+        .binotel-cell .main-text,
+        .binotel-cell .sub-text,
+        .caller-cell .main-text,
+        .employee-cell .main-text,
+        .employee-cell .sub-text {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .binotel-cell,
+        .processed-cell {
+            min-width: 0;
+        }
+
+        body.is-interaction-history-page .binotel-cell,
+        body.is-interaction-history-page .processed-cell,
+        body.is-interaction-history-page .action-cell {
+            vertical-align: top;
         }
 
         .dir-indicator {
@@ -1636,6 +1708,14 @@
             padding: 28px;
             background: rgba(23, 19, 40, 0.62);
             backdrop-filter: blur(5px);
+        }
+
+        body.is-page-scroll-locked {
+            position: fixed;
+            left: 0;
+            right: 0;
+            width: 100%;
+            overflow-y: scroll;
         }
 
         .modal-card {
@@ -2034,6 +2114,26 @@
         .managers-count-col,
         .managers-score-col {
             width: 180px;
+            text-align: center;
+        }
+
+        .managers-count-stack {
+            display: grid;
+            gap: 6px;
+            justify-items: center;
+        }
+
+        .managers-count-main {
+            color: #1f2a44;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .managers-count-meta {
+            color: #6d7d9d;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.35;
             text-align: center;
         }
 
@@ -3412,6 +3512,7 @@
         .automation-calendar-anchor {
             position: relative;
             min-width: 0;
+            cursor: pointer;
         }
 
         .automation-calendar-launcher {
@@ -3547,11 +3648,41 @@
             gap: 8px;
         }
 
+        .automation-duration-card {
+            display: grid;
+            gap: 10px;
+            padding: 14px 16px;
+            border: 1px solid #cfdcf0;
+            border-radius: 16px;
+            background: #ffffff;
+        }
+
+        .automation-duration-head {
+            display: grid;
+            gap: 4px;
+        }
+
+        .automation-duration-note {
+            margin: 0;
+            color: #6d80a6;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .automation-duration-select {
+            height: 46px;
+            border-radius: 14px;
+            border: 1px solid #cfdcf0;
+            padding: 0 14px;
+            background: #ffffff;
+        }
+
         .automation-calendar-popover,
         .automation-calendar-day-popover {
             position: absolute;
             top: calc(100% + 14px);
             z-index: 30;
+            box-sizing: border-box;
             width: min(420px, calc(100vw - 48px));
             padding: 16px;
             border: 1px solid #d8e3f5;
@@ -3561,6 +3692,19 @@
             backdrop-filter: blur(16px);
             max-height: calc(100vh - 64px);
             overflow: auto;
+        }
+
+        .automation-calendar-backdrop[hidden] {
+            display: none;
+        }
+
+        .automation-calendar-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 29;
+            background: rgba(23, 19, 40, 0.18);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
         }
 
         .automation-calendar-popover {
@@ -3761,6 +3905,26 @@
             background: #f8fbff;
         }
 
+        .automation-calendar-day-stat-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+            cursor: pointer;
+        }
+
+        .automation-calendar-day-stat-link:hover {
+            border-color: #9db8e7;
+            box-shadow: 0 10px 24px rgba(70, 104, 168, 0.14);
+            transform: translateY(-1px);
+        }
+
+        .automation-calendar-day-stat-link:focus-visible {
+            outline: 0;
+            border-color: #6f95d8;
+            box-shadow: 0 0 0 3px rgba(111, 149, 216, 0.2);
+        }
+
         .automation-calendar-day-stat-label {
             color: #7082a4;
             font-size: 12px;
@@ -3794,6 +3958,25 @@
 
         .automation-calendar-day-row.is-complete {
             background: #f3f8ff;
+        }
+
+        .automation-calendar-day-row-link {
+            color: inherit;
+            text-decoration: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+            cursor: pointer;
+        }
+
+        .automation-calendar-day-row-link:hover {
+            border-color: #9db8e7;
+            box-shadow: 0 10px 24px rgba(70, 104, 168, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .automation-calendar-day-row-link:focus-visible {
+            outline: 0;
+            border-color: #6f95d8;
+            box-shadow: 0 0 0 3px rgba(111, 149, 216, 0.2);
         }
 
         .automation-calendar-day-row-label {
@@ -4597,6 +4780,22 @@
                 min-width: 100%;
             }
 
+            .date-picker {
+                left: 0;
+                right: auto;
+                width: min(100vw - 28px, 688px);
+                min-width: 0;
+            }
+
+            .date-picker-top {
+                grid-template-columns: 32px minmax(0, 1fr) minmax(0, 1fr) 32px;
+                padding: 14px 12px 0;
+            }
+
+            .month-box {
+                padding: 0 8px 12px;
+            }
+
             .transcription-page {
                 margin: 0;
                 min-height: auto;
@@ -4981,13 +5180,14 @@
         <div class="table-wrap" id="callsTableWrap">
             <table class="calls-table" id="callsTable">
                 <colgroup>
-                    <col data-call-column="force">
-                    <col data-call-column="direction">
-                    <col data-call-column="interactionCount">
-                    <col data-call-column="interactionNumber">
-                    <col data-call-column="caller">
-                    <col data-call-column="model">
-                    <col data-call-column="employee">
+                <col data-call-column="force">
+                <col data-call-column="direction">
+                <col data-call-column="interactionCount">
+                <col data-call-column="interactionNumber">
+                <col data-call-column="missingInCrm">
+                <col data-call-column="caller">
+                <col data-call-column="model">
+                <col data-call-column="employee">
                     <col data-call-column="score">
                     <col data-call-column="duration">
                     <col data-call-column="time">
@@ -5016,6 +5216,10 @@
                             <span>Взаємодія</span>
                         </button>
                         <button type="button" class="column-resizer" data-call-column-resizer="interactionNumber" aria-label="Змінити ширину колонки Взаємодія" title="Перетягніть, щоб змінити ширину. Подвійний клік — скинути."></button>
+                    </th>
+                    <th class="crm-missing-cell" data-call-column="missingInCrm">
+                        Нет в CRM
+                        <button type="button" class="column-resizer" data-call-column-resizer="missingInCrm" aria-label="Змінити ширину колонки Нет в CRM" title="Перетягніть, щоб змінити ширину. Подвійний клік — скинути."></button>
                     </th>
                     <th class="caller-cell" data-call-column="caller">
                         Хто дзвонив
@@ -5091,8 +5295,8 @@
                             <thead>
                             <tr>
                                 <th class="managers-name-col">Менеджер</th>
-                                <th class="managers-count-col">Кількість дзвінків</th>
-                                <th class="managers-score-col">Середня оцінка</th>
+                                <th class="managers-count-col">Кількість дзвінків за місяць</th>
+                                <th class="managers-score-col">Середня оцінка за місяць</th>
                                 <th>Рекомендації</th>
                             </tr>
                             </thead>
@@ -5403,6 +5607,8 @@
                                         </span>
                                     </button>
 
+                                    <div class="automation-calendar-backdrop" id="automationCalendarBackdrop" hidden></div>
+
                                     <div class="automation-calendar-popover" id="automationCalendarPopover" role="dialog" aria-modal="false" aria-labelledby="automationCalendarPopoverTitle" hidden>
                                         <div class="automation-calendar-popover-head">
                                             <div>
@@ -5424,7 +5630,7 @@
                                         <div class="automation-calendar-legend">
                                             <div class="automation-calendar-legend-item">
                                                 <span class="automation-calendar-legend-dot"></span>
-                                                <span>Число під датою показує, скільки дзвінків треба обробити за активними сценаріями.</span>
+                                                <span>Число під датою показує, скільки дзвінків ще залишилося обробити за активними сценаріями.</span>
                                             </div>
                                             <div class="automation-calendar-legend-item">
                                                 <span class="automation-calendar-legend-dot is-complete"></span>
@@ -5483,6 +5689,25 @@
                                                 >
                                             </label>
                                         </div>
+                                    </div>
+
+                                    <div class="automation-duration-card">
+                                        <div class="automation-duration-head">
+                                            <label class="automation-window-title" for="automationMinimumDurationSelect">Тривалість спілкування</label>
+                                        </div>
+                                        <select class="text-select automation-duration-select" id="automationMinimumDurationSelect">
+                                            <option value="0">Усі дзвінки</option>
+                                            <option value="1">Від 1 хвилини і довше</option>
+                                            <option value="2">Від 2 хвилин і довше</option>
+                                            <option value="3">Від 3 хвилин і довше</option>
+                                            <option value="4">Від 4 хвилин і довше</option>
+                                            <option value="5">Від 5 хвилин і довше</option>
+                                            <option value="6">Від 6 хвилин і довше</option>
+                                            <option value="7">Від 7 хвилин і довше</option>
+                                            <option value="8">Від 8 хвилин і довше</option>
+                                            <option value="9">Від 9 хвилин і довше</option>
+                                            <option value="10">Від 10 хвилин і довше</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -6560,6 +6785,7 @@
 
 <script>
     let calls = @json($calls);
+    let callsVersion = @json($callsVersion ?? '');
     const initialChecklists = @json($checklists);
     let defaultChecklistId = @json($defaultChecklistId);
     const checklistsEndpoint = @json($checklistsEndpoint);
@@ -6570,12 +6796,16 @@
     let transcriptionServerUploadLimitBytes = @json($transcriptionUploadLimitBytes);
     const transcriptionSettings = @json($transcriptionSettings);
     const transcriptionSettingsEndpoint = @json($transcriptionSettingsEndpoint);
+    const callsTableColumnsPreferenceEndpoint = @json($callsTableColumnsPreferenceEndpoint ?? '');
+    const callsListingEndpoint = @json($callsListingEndpoint ?? '');
+    const managersSummaryEndpoint = @json($managersSummaryEndpoint ?? '');
     const transcriptionSettingsModelsEndpoint = `${transcriptionSettingsEndpoint}/available-models`;
     const pageBootstrapEndpoint = @json($pageBootstrapEndpoint);
     const callAudioEndpoint = @json($callAudioEndpoint ?? '');
     const callForceProcessEndpoint = @json($callForceProcessEndpoint ?? '');
     const primaryTranscriptionPageUrl = @json(route('call-center'));
     const automationEndpoint = @json($automationEndpoint ?? '');
+    const automationCalendarStatsEndpoint = @json($automationCalendarStatsEndpoint ?? '');
     const automationPlayEndpoint = @json($automationPlayEndpoint ?? '');
     const automationPauseEndpoint = @json($automationPauseEndpoint ?? '');
     const automationSettingsEndpoint = @json($automationSettingsEndpoint ?? '');
@@ -6630,40 +6860,63 @@
         return `Потрібна додаткова увага на ${callsCount} дзвінках. Рекомендуємо посилити виявлення потреби, заперечення та фіксацію наступного кроку.`;
     }
 
-    function buildManagersFromCalls(items) {
-        const groups = new Map();
+    function displayDateMonthKey(dateValue) {
+        const [day, month, year] = String(dateValue || "").split(".").map(Number);
+        if (!Number.isFinite(month) || !Number.isFinite(year) || month <= 0 || year <= 0) {
+            return "";
+        }
 
-        items.forEach((call) => {
+        return `${year}-${String(month).padStart(2, "0")}`;
+    }
+
+    function currentCalendarMonthKey() {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function currentCalendarMonthLabel() {
+        const now = new Date();
+        return `${monthLabels[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    function buildManagersFromCalls() {
+        const monthGroups = new Map();
+        const monthKey = currentCalendarMonthKey();
+
+        calls.forEach((call) => {
+            if (displayDateMonthKey(call?.date) !== monthKey) {
+                return;
+            }
+
             const key = normalizeManagerName(call.employee);
-            const existing = groups.get(key) || {
-                name: key,
+            const existing = monthGroups.get(key) || {
                 totalScore: 0,
                 callsCount: 0,
-                scoredCallsCount: 0
+                scoredCallsCount: 0,
             };
 
             const score = numericScoreValue(call.score);
-
             if (score !== null) {
                 existing.totalScore += score;
                 existing.scoredCallsCount += 1;
             }
 
             existing.callsCount += 1;
-            groups.set(key, existing);
+            monthGroups.set(key, existing);
         });
 
-        return [...groups.values()]
-            .map((item) => {
-                const score = item.scoredCallsCount > 0
-                    ? Math.round(item.totalScore / item.scoredCallsCount)
+        return [...monthGroups.entries()]
+            .map(([name, monthStats]) => {
+                const score = monthStats.scoredCallsCount > 0
+                    ? Math.round(monthStats.totalScore / monthStats.scoredCallsCount)
                     : null;
 
                 return {
-                    name: item.name,
-                    callsCount: item.callsCount,
+                    name,
+                    callsCount: monthStats.callsCount,
+                    scoredCallsCount: monthStats.scoredCallsCount,
                     score,
-                    recommendation: buildManagerRecommendation(score, item.callsCount)
+                    recommendation: buildManagerRecommendation(score, monthStats.callsCount)
                 };
             })
             .sort((left, right) => {
@@ -6747,6 +7000,7 @@
     const automationCalendarAnchor = document.getElementById("automationCalendarAnchor");
     const automationCalendarLauncher = document.getElementById("automationCalendarLauncher");
     const automationCalendarMiniGrid = document.getElementById("automationCalendarMiniGrid");
+    const automationCalendarBackdrop = document.getElementById("automationCalendarBackdrop");
     const automationCalendarPopover = document.getElementById("automationCalendarPopover");
     const automationCalendarCloseButton = document.getElementById("automationCalendarCloseButton");
     const automationCalendarPrev = document.getElementById("automationCalendarPrev");
@@ -6794,6 +7048,7 @@
     const transcriptionEvaluate = document.getElementById("transcriptionEvaluate");
     const automationWindowStartInput = document.getElementById("automationWindowStartInput");
     const automationWindowEndInput = document.getElementById("automationWindowEndInput");
+    const automationMinimumDurationSelect = document.getElementById("automationMinimumDurationSelect");
     const automationWindowTimezone = document.getElementById("automationWindowTimezone");
     const automationWindowHint = document.getElementById("automationWindowHint");
     const transcriptionRunButton = document.getElementById("transcriptionRunButton");
@@ -6933,35 +7188,43 @@
     const navItems = [...document.querySelectorAll(".nav-item")];
     const contentSections = [...document.querySelectorAll(".content-section")];
     calls = Array.isArray(calls) ? calls : [];
+    callsVersion = String(callsVersion || "").trim();
     const interactionHistoryRequest = readInteractionHistoryRequest();
     const isInteractionHistoryMode = interactionHistoryRequest !== null;
-    if (isInteractionHistoryMode) {
-        calls = filterInteractionHistoryRequestCalls(interactionHistoryRequest, calls);
-    }
+    const automationMetricFilterRequest = !isInteractionHistoryMode ? readAutomationMetricFilterRequest() : null;
+    const isAutomationMetricFilterMode = automationMetricFilterRequest !== null;
+    const automationRowFilterRequest = !isInteractionHistoryMode ? readAutomationRowFilterRequest() : null;
+    const isAutomationRowFilterMode = automationRowFilterRequest !== null;
     const defaultTranscriptionButtonLabel = transcriptionRunButton?.textContent?.trim() || "Запустити транскрибацію";
     const defaultStopButtonLabel = transcriptionStopButton?.getAttribute("aria-label") || transcriptionStopButton?.textContent?.trim() || "Зупинити та скинути";
     const defaultChecklistFeedback = checklistFeedback?.textContent?.trim() || "Редактор чек-листа готовий.";
     const checklistSelectionStorageKey = `call-center.active-checklist:${window.location.pathname}`;
     const callsTableColumnStorageKey = `call-center.calls-table-columns:${window.location.pathname}`;
+    const callsTableColumnProfileStorageKey = `call-center.calls-table-columns-profile:${window.location.pathname}`;
+    const callsTableColumnOrderStorageKey = `call-center.calls-table-column-order:${window.location.pathname}`;
     const callsTableColumnConfig = [
         { id: "force", minWidth: 58 },
         { id: "direction", minWidth: 42 },
         { id: "interactionCount", minWidth: 86 },
         { id: "interactionNumber", minWidth: 104 },
-        { id: "caller", minWidth: 130 },
-        { id: "model", minWidth: 148 },
-        { id: "employee", minWidth: 150 },
+        { id: "missingInCrm", minWidth: 108 },
+        { id: "caller", minWidth: 150 },
+        { id: "model", minWidth: 168 },
+        { id: "employee", minWidth: 180 },
         { id: "score", minWidth: 76 },
-        { id: "duration", minWidth: 96 },
-        { id: "time", minWidth: 108 },
-        { id: "processed", minWidth: 118 },
-        { id: "binotel", minWidth: 92 },
-        { id: "text", minWidth: 72 },
-        { id: "audio", minWidth: 72 },
+        { id: "duration", minWidth: 108 },
+        { id: "time", minWidth: 132 },
+        { id: "processed", minWidth: 160 },
+        { id: "binotel", minWidth: 160 },
+        { id: "text", minWidth: 92 },
+        { id: "audio", minWidth: 92 },
     ];
     const legacyTranscriptionAiSettingsStorageKey = `call-center.transcription-ai-settings:${window.location.pathname}`;
     const transcriptionAiSettingsStorageKey = `call-center.ai-settings.transcription-result:${window.location.pathname}`;
     const transcriptionLlmSettingsStorageKey = `call-center.llm-settings.evaluation:${window.location.pathname}`;
+    const automationCalendarStatsStorageKey = `call-center.automation-calendar-stats:v2-crm-missing:${window.location.pathname}`;
+    const transcriptionSettingsDraftStorageKey = `call-center.settings-draft:${window.location.pathname}`;
+    const transcriptionSettingsSavedStorageKey = `call-center.settings-saved:${window.location.pathname}`;
     const settingsWhisperPanelStorageKey = `call-center.settings-whisper-panel:${window.location.pathname}`;
     const settingsApiKeysPanelStorageKey = `call-center.settings-api-keys-panel:${window.location.pathname}`;
     const settingsBinotelPanelStorageKey = `call-center.settings-binotel-panel:${window.location.pathname}`;
@@ -6970,6 +7233,10 @@
     const defaultTranscriptionResultPlaceholder = transcriptionResultText?.getAttribute("placeholder") || "Після запуску тут з'явиться результат транскрибації.";
     let hasCalls = calls.length > 0;
     let selectedCallId = calls[0]?.id ?? null;
+    let totalCallsCount = calls.length;
+    let totalCallsPages = calls.length > 0 ? 1 : 0;
+    let callsEmployees = [];
+    let managersSummaryRows = [];
     let checklists = Array.isArray(initialChecklists) ? initialChecklists : [];
     let storedChecklistSelectionId = readStoredChecklistSelectionId();
     let transcriptionAiSettingsState = readStoredTranscriptionAiSettings();
@@ -6995,7 +7262,12 @@
     let calendarViewDate = null;
     let automationCalendarViewDate = null;
     let automationCalendarSelectedDate = "";
+    let automationCalendarSessionId = 0;
     let automationCalendarStatsCache = null;
+    let automationCalendarServerStats = readStoredAutomationCalendarStats();
+    let automationCalendarStatsLoading = false;
+    let automationCalendarStatsPromise = null;
+    let automationCalendarStatsError = "";
     let callsPage = 1;
     let managersPage = 1;
     let sortField = "time";
@@ -7003,8 +7275,10 @@
     let hasCustomDateRange = false;
     let isChecklistEditorDirty = false;
     let isSettingsDirty = false;
+    let pageScrollLockY = 0;
     let automationChecklistRoutingRulesState = [];
     let pendingApiKeyDeletes = {};
+    let persistedSavedTranscriptionSettings = readStoredSavedTranscriptionSettings();
     let settingsProviderSelectedModels = {
         [transcriptionSettings?.llm_provider || "ollama"]: String(transcriptionSettings?.llm_model || "").trim(),
     };
@@ -7029,18 +7303,32 @@
     let transcriptionProviderModelRequestIds = {};
     let isBootstrapRefreshing = false;
     let isAutomationRefreshing = false;
+    let isCallsListingRefreshing = false;
+    let isManagersSummaryRefreshing = false;
     let lastBootstrapSyncAt = Date.now();
     let lastAutomationSyncAt = Date.now();
+    let callsListingRefreshTimer = null;
+    let callsListingAbortController = null;
+    let callsListingRequestId = 0;
+    const callsListingCache = new Map();
+    let managersSummaryCacheVersion = "";
+    let managersSummaryCacheRows = [];
     let activeModalKind = null;
     let activeModalCallId = null;
     const audioRefreshCallIds = new Set();
     const forceProcessCallIds = new Set();
+    let pendingForceProcessCrmContinueCall = null;
     const queuedAudioWarmupCallIds = new Set();
     const audioWarmupAttemptedAt = new Map();
     let audioWarmupTimerId = null;
     const audioWarmupBatchSize = 3;
     const audioWarmupCooldownMs = 5 * 60 * 1000;
     let activeColumnResize = null;
+    let activeColumnDrag = null;
+    let callsTableColumnSaveTimer = null;
+    let callsTableColumnSaveAbortController = null;
+    let callsTableColumnsLoadedFromServer = false;
+    let callsTableColumnOrder = callsTableColumnConfig.map((column) => column.id);
     let interactionCountIndex = new Map();
     let interactionNumberIndex = new Map();
     let activeEvaluationJobId = null;
@@ -7062,15 +7350,28 @@
     let isAutomationSettingsSyncing = false;
     let automationSettingsSyncPromise = null;
     let automationRoutingRefreshLockUntil = 0;
-    const callsPerPage = isInteractionHistoryMode ? Math.max(14, calls.length) : 14;
+    const callsPerPage = 14;
     const managersPerPage = 10;
-    const pageBootstrapStaleAfterMs = 5000;
+    const pageBootstrapStaleAfterMs = 60000;
     const automationRefreshIntervalMs = 1500;
     const weekdayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
     const monthLabels = [
         "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
         "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
     ];
+
+    replaceObjectContents(
+        transcriptionSettings,
+        resolvePreferredTranscriptionSettings(transcriptionSettings),
+    );
+    settingsProviderSelectedModels[transcriptionSettings?.llm_provider || "ollama"] = String(transcriptionSettings?.llm_model || "").trim();
+    transcriptionProviderSelectedModels[transcriptionSettings?.transcription_provider || "faster_whisper"] = String(transcriptionSettings?.transcription_model || "").trim();
+    settingsProviderModelsCache[transcriptionSettings?.llm_provider || "ollama"] = Array.isArray(transcriptionSettings?.llm_available_models)
+        ? transcriptionSettings.llm_available_models
+        : [];
+    transcriptionProviderModelsCache[transcriptionSettings?.transcription_provider || "faster_whisper"] = Array.isArray(transcriptionSettings?.transcription_provider_available_models)
+        ? transcriptionSettings.transcription_provider_available_models
+        : (Array.isArray(transcriptionSettings?.available_models) ? transcriptionSettings.available_models : []);
 
     function scoreClass(score) {
         const numericScore = numericScoreValue(score);
@@ -7186,7 +7487,7 @@
         return generalCallId !== "";
     }
 
-    async function forceProcessCall(call) {
+    async function forceProcessCall(call, { continueWithoutCrm = false } = {}) {
         const callId = Number(call?.id);
         const endpoint = callForceProcessUrl(callId);
 
@@ -7201,8 +7502,12 @@
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: {
-                    Accept: "application/json"
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
                 },
+                body: JSON.stringify({
+                    continue_without_crm: Boolean(continueWithoutCrm),
+                }),
             });
 
             const payload = await response.json().catch(() => ({}));
@@ -7217,6 +7522,10 @@
             }
 
             if (!response.ok) {
+                if (payload?.code === "crm_unavailable_confirmation_required") {
+                    openForceProcessCrmConfirmModal(payload.message || "CRM не відповіла. Продовжити обробку без відповіді CRM?", call);
+                    return;
+                }
                 throw new Error(payload.message || `Force process failed with status ${response.status}`);
             }
 
@@ -7228,11 +7537,80 @@
                 ? "Не вдалося звʼязатися із сервером для примусового запуску дзвінка."
                 : (error.message || "Не вдалося запустити примусову обробку цього дзвінка.");
 
+            if (!(error instanceof TypeError) && String(message).trim() !== "") {
+                openForceProcessErrorModal(message, call);
+            }
             setTranscriptionFeedback(message, "is-error");
         } finally {
             forceProcessCallIds.delete(callId);
             renderRows();
         }
+    }
+
+    function openForceProcessCrmConfirmModal(message, call = null) {
+        pendingForceProcessCrmContinueCall = call;
+
+        openModal(
+            "CRM",
+            "CRM не відповіла",
+            "Перед запуском примусової обробки не вдалося отримати відповідь від CRM.",
+            `
+                <div class="modal-grid">
+                    <section class="modal-box">
+                        <h3>Що сталося</h3>
+                        <p>${escapeHtml(String(message || "CRM не відповіла під час перевірки номера."))}</p>
+                    </section>
+                    <section class="modal-box">
+                        <h3>Що робимо далі?</h3>
+                        <p>Можна продовжити обробку без відповіді CRM або зупинити запуск і повернутися пізніше.</p>
+                        <div class="confirm-modal-actions" style="margin-top: 16px;">
+                            <button type="button" class="primary-button" id="forceProcessCrmContinueButton">Продовжити</button>
+                            <button type="button" class="ghost-button" id="forceProcessCrmStopButton">Зупинити</button>
+                        </div>
+                    </section>
+                </div>
+            `
+        );
+
+        document.getElementById("forceProcessCrmContinueButton")?.addEventListener("click", async () => {
+            const nextCall = pendingForceProcessCrmContinueCall;
+            pendingForceProcessCrmContinueCall = null;
+            closeModal();
+
+            if (nextCall) {
+                await forceProcessCall(nextCall, { continueWithoutCrm: true });
+            }
+        }, { once: true });
+
+        document.getElementById("forceProcessCrmStopButton")?.addEventListener("click", () => {
+            pendingForceProcessCrmContinueCall = null;
+            closeModal();
+            setTranscriptionFeedback("Примусовий запуск зупинено, бо CRM не відповіла.", "");
+        }, { once: true });
+    }
+
+    function openForceProcessErrorModal(message, call = null) {
+        const caller = String(call?.caller || "Невідомий номер").trim() || "Невідомий номер";
+        const employee = normalizeManagerName(String(call?.employee || "Не визначено").trim() || "Не визначено");
+        const generalCallId = String(call?.generalCallId || "").trim();
+
+        openModal(
+            "Примусовий запуск",
+            "Цей дзвінок не можна обробити",
+            "Сервер перевірив CRM і поточні правила перед запуском обробки.",
+            `
+                <div class="modal-grid">
+                    <section class="modal-box">
+                        <h3>Причина</h3>
+                        <p>${escapeHtml(String(message || "Для цього дзвінка примусова обробка недоступна."))}</p>
+                    </section>
+                    <section class="modal-box">
+                        <h3>Дані дзвінка</h3>
+                        <p>Клієнт: ${escapeHtml(caller)}<br>Менеджер: ${escapeHtml(employee)}<br>General Call ID: ${escapeHtml(generalCallId || "—")}</p>
+                    </section>
+                </div>
+            `
+        );
     }
 
     function closeForceProcessChoiceModal() {
@@ -7241,6 +7619,8 @@
         if (forceProcessChoiceModal) {
             forceProcessChoiceModal.hidden = true;
         }
+
+        syncBodyScrollLock();
     }
 
     function forceTranscriptionOneUrl(call) {
@@ -7284,6 +7664,7 @@
             <strong>General Call ID:</strong> ${escapeHtml(generalCallId || "—")}
         `;
         forceProcessChoiceModal.hidden = false;
+        syncBodyScrollLock();
     }
 
     function submitForceProcessChoice(mode) {
@@ -7368,6 +7749,10 @@
     }
 
     function queueVisibleCallsAudioWarmup(pageRows) {
+        if (currentSectionId() !== "callsSection" || document.visibilityState !== "visible") {
+            return;
+        }
+
         if (!Array.isArray(pageRows) || pageRows.length === 0) {
             return;
         }
@@ -7504,6 +7889,17 @@
         return knownSectionIds().includes(normalized) ? normalized : "callsSection";
     }
 
+    function currentSectionId() {
+        const activeSectionId = contentSections.find((section) => section.classList.contains("active"))?.id || "";
+        const hashSectionId = String(window.location.hash || "").trim();
+
+        return resolveSectionId(hashSectionId !== "" ? hashSectionId : activeSectionId);
+    }
+
+    function shouldKeepPageBootstrapHot() {
+        return ["callsSection", "managersSection"].includes(currentSectionId()) && document.visibilityState === "visible";
+    }
+
     function activateSection(targetId, { syncUrl = true } = {}) {
         const resolvedId = resolveSectionId(targetId);
 
@@ -7522,6 +7918,47 @@
         }
 
         closeMobileNav();
+
+        if (resolvedId === "callsSection") {
+            renderRows();
+
+            if (document.visibilityState === "visible") {
+                refreshPageBootstrap({ force: true });
+
+                const cacheKey = callsListingCacheKey();
+                const cachedPayload = callsListingCache.get(cacheKey);
+
+                if (cachedPayload) {
+                    applyCallsListingPayload(cachedPayload, { cacheKey });
+                } else if (calls.length === 0) {
+                    scheduleCallsListingRefresh({ force: true, immediate: true });
+                }
+            }
+
+            return;
+        }
+
+        if (resolvedId === "managersSection") {
+            renderManagersRows();
+
+            if (document.visibilityState === "visible") {
+                refreshPageBootstrap({ force: true });
+
+                if (managersSummaryCacheVersion === callsVersion && Array.isArray(managersSummaryCacheRows) && managersSummaryCacheRows.length > 0) {
+                    managersSummaryRows = managersSummaryCacheRows;
+                    renderManagersRows();
+                } else {
+                    void refreshManagersSummary({ force: true });
+                }
+            }
+        }
+
+        queuedAudioWarmupCallIds.clear();
+
+        if (audioWarmupTimerId !== null) {
+            window.clearTimeout(audioWarmupTimerId);
+            audioWarmupTimerId = null;
+        }
     }
 
     function escapeHtml(value) {
@@ -7621,6 +8058,12 @@
     }
 
     function interactionCountForCall(call) {
+        const explicitCount = Number.parseInt(call?.interactionCount, 10);
+
+        if (Number.isFinite(explicitCount) && explicitCount >= 0) {
+            return explicitCount;
+        }
+
         if (Number.parseInt(call?.interactionNumber, 10) === 0) {
             return 0;
         }
@@ -7655,6 +8098,104 @@
         };
     }
 
+    function parseAutomationMetricFilterDate(value) {
+        const rawValue = String(value || "").trim();
+
+        if (!/^\d{2}\.\d{2}\.\d{4}$/.test(rawValue)) {
+            return null;
+        }
+
+        const parsedDate = parseDateOnly(rawValue);
+
+        return Number.isFinite(parsedDate.getTime()) ? normalizeDate(parsedDate) : null;
+    }
+
+    function automationMetricFilterLabel(metric) {
+        return {
+            totalCalls: "Усього дзвінків",
+            processedTotal: "Оброблено всього за день",
+            required: "Під сценарій",
+            processedScenario: "Оброблено за сценарієм",
+            processedCrmSkipped: "Оброблено, але відсіяно CRM",
+            processedOutsideBaseRules: "Оброблено поза базовими правилами",
+            remaining: "Залишилось обробити",
+            crmSkipped: "Відсіяно CRM",
+        }[String(metric || "").trim()] || "Показник календаря";
+    }
+
+    function normalizeAutomationCalendarRowDirection(value) {
+        const direction = String(value || "").trim().toLowerCase();
+
+        return direction === "in" || direction === "out"
+            ? direction
+            : "";
+    }
+
+    function readAutomationMetricFilterRequest() {
+        const params = new URLSearchParams(window.location.search);
+        const metric = String(params.get("calendarMetric") || "").trim();
+        const date = parseAutomationMetricFilterDate(params.get("calendarDate"));
+        const allowedMetrics = new Set([
+            "totalCalls",
+            "processedTotal",
+            "required",
+            "processedScenario",
+            "processedCrmSkipped",
+            "processedOutsideBaseRules",
+            "remaining",
+            "crmSkipped",
+        ]);
+
+        if (!allowedMetrics.has(metric) || !date) {
+            return null;
+        }
+
+        return {
+            metric,
+            date,
+            dateLabel: formatDate(date),
+        };
+    }
+
+    function readAutomationRowFilterRequest() {
+        const params = new URLSearchParams(window.location.search);
+        const date = parseAutomationMetricFilterDate(params.get("calendarDate"));
+        const interactionNumber = Number.parseInt(params.get("calendarRowInteraction"), 10);
+        const direction = normalizeAutomationCalendarRowDirection(params.get("calendarRowDirection"));
+
+        if (!date || !Number.isFinite(interactionNumber) || interactionNumber <= 0 || direction === "") {
+            return null;
+        }
+
+        return {
+            date,
+            dateLabel: formatDate(date),
+            interactionNumber,
+            direction,
+            signature: `${interactionNumber}:${direction}`,
+            label: automationCalendarCallRowLabelFromValues(interactionNumber, direction),
+            isInScenario: params.get("calendarRowScenario") === "1",
+        };
+    }
+
+    function setCallsSectionCardText(text = "") {
+        const cardHeadMain = document.querySelector("#callsSection .card-head-main");
+        const existingText = cardHeadMain?.querySelector(".card-text");
+
+        if (existingText) {
+            existingText.remove();
+        }
+
+        if (!cardHeadMain || String(text || "").trim() === "") {
+            return;
+        }
+
+        cardHeadMain.insertAdjacentHTML(
+            "beforeend",
+            `<p class="card-text">${escapeHtml(text)}</p>`
+        );
+    }
+
     function filterInteractionHistoryRequestCalls(request, items) {
         if (!request) {
             return items;
@@ -7682,29 +8223,51 @@
 
         document.body.classList.add("is-interaction-history-page");
         activateSection("callsSection", { syncUrl: false });
-
-        const sortedHistoryCalls = [...calls].sort((left, right) => parseDateTime(left) - parseDateTime(right));
-        const firstCall = sortedHistoryCalls[0] || null;
-        const lastCall = sortedHistoryCalls[sortedHistoryCalls.length - 1] || null;
-        const displayPhone = firstCall?.caller || interactionHistoryRequest.phone;
-        const displayManager = firstCall ? normalizeManagerName(firstCall.employee) : interactionHistoryRequest.manager;
-        const periodText = firstCall && lastCall
-            ? `${firstCall.date} ${firstCall.time} - ${lastCall.date} ${lastCall.time}`
-            : "Немає дзвінків";
+        const displayPhone = interactionHistoryRequest.phone;
+        const displayManager = interactionHistoryRequest.manager;
 
         document.title = `Історія ${displayPhone} - ${displayManager}`;
         document.querySelector("#callsSection .card-title").textContent = "Історія взаємодій";
+        setCallsSectionCardText(`Клієнт: ${displayPhone}. Менеджер: ${displayManager}. Завантажуємо повну історію взаємодій.`);
+    }
 
-        const cardHeadMain = document.querySelector("#callsSection .card-head-main");
-        const existingText = cardHeadMain?.querySelector(".card-text");
-        if (existingText) {
-            existingText.remove();
+    function applyAutomationMetricFilterMode() {
+        if (!isAutomationMetricFilterMode || !automationMetricFilterRequest) {
+            return;
         }
 
-        cardHeadMain?.insertAdjacentHTML(
-            "beforeend",
-            `<p class="card-text">Клієнт: ${escapeHtml(displayPhone)}. Менеджер: ${escapeHtml(displayManager)}. Період: ${escapeHtml(periodText)}.</p>`
-        );
+        rangeStart = new Date(automationMetricFilterRequest.date);
+        rangeEnd = new Date(automationMetricFilterRequest.date);
+        draftRangeStart = new Date(automationMetricFilterRequest.date);
+        draftRangeEnd = new Date(automationMetricFilterRequest.date);
+        hasCustomDateRange = true;
+        activateSection("callsSection", { syncUrl: false });
+
+        const label = automationMetricFilterLabel(automationMetricFilterRequest.metric);
+        document.title = `${label} · ${automationMetricFilterRequest.dateLabel}`;
+        document.querySelector("#callsSection .card-title").textContent = "Список дзвінків";
+        setCallsSectionCardText(`Перевірка показника “${label}” за ${automationMetricFilterRequest.dateLabel}. Відкрита вибірка містить тільки ті дзвінки, які увійшли в цей показник.`);
+    }
+
+    function applyAutomationRowFilterMode() {
+        if (!isAutomationRowFilterMode || !automationRowFilterRequest) {
+            return;
+        }
+
+        rangeStart = new Date(automationRowFilterRequest.date);
+        rangeEnd = new Date(automationRowFilterRequest.date);
+        draftRangeStart = new Date(automationRowFilterRequest.date);
+        draftRangeEnd = new Date(automationRowFilterRequest.date);
+        hasCustomDateRange = true;
+        activateSection("callsSection", { syncUrl: false });
+
+        const scenarioNote = automationRowFilterRequest.isInScenario
+            ? " Це сценарний рядок календаря."
+            : "";
+
+        document.title = `${automationRowFilterRequest.label} · ${automationRowFilterRequest.dateLabel}`;
+        document.querySelector("#callsSection .card-title").textContent = "Список дзвінків";
+        setCallsSectionCardText(`Перевірка рядка “${automationRowFilterRequest.label}” за ${automationRowFilterRequest.dateLabel}. Відкрита вибірка містить тільки дзвінки цього рядка календаря.${scenarioNote}`);
     }
 
     function escapeAttribute(value) {
@@ -7721,8 +8284,247 @@
         isChecklistEditorDirty = true;
     }
 
+    function transcriptionSettingsUpdatedAtMs(settings) {
+        const rawValue = String(settings?.updated_at || "").trim();
+        if (rawValue === "") {
+            return 0;
+        }
+
+        const timestamp = Date.parse(rawValue);
+
+        return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
+    function normalizePersistedTranscriptionSettings(settings) {
+        return settings && typeof settings === "object" ? { ...settings } : null;
+    }
+
+    function readStoredSavedTranscriptionSettings() {
+        try {
+            const rawValue = window.localStorage?.getItem(transcriptionSettingsSavedStorageKey);
+            if (!rawValue) {
+                return null;
+            }
+
+            return normalizePersistedTranscriptionSettings(JSON.parse(rawValue));
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function writeStoredSavedTranscriptionSettings(settings) {
+        const normalized = normalizePersistedTranscriptionSettings(settings);
+        if (!normalized) {
+            return;
+        }
+
+        try {
+            window.localStorage?.setItem(
+                transcriptionSettingsSavedStorageKey,
+                JSON.stringify(normalized),
+            );
+            persistedSavedTranscriptionSettings = normalized;
+        } catch (error) {
+            // Ignore localStorage failures and keep the in-memory snapshot.
+            persistedSavedTranscriptionSettings = normalized;
+        }
+    }
+
+    function readStoredSettingsDraft() {
+        try {
+            const rawValue = window.sessionStorage?.getItem(transcriptionSettingsDraftStorageKey);
+            if (!rawValue) {
+                return null;
+            }
+
+            const parsed = JSON.parse(rawValue);
+
+            return parsed && typeof parsed === "object" ? parsed : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function clearStoredSettingsDraft() {
+        try {
+            window.sessionStorage?.removeItem(transcriptionSettingsDraftStorageKey);
+        } catch (error) {
+            // Ignore sessionStorage failures for this optional draft cache.
+        }
+    }
+
+    function collectCurrentSettingsDraft() {
+        const selectedProvider = settingsProvider?.value?.trim()
+            || transcriptionSettings?.llm_provider
+            || "ollama";
+        const selectedTranscriptionProvider = transcriptionProviderSettingsDraft?.provider
+            || transcriptionSettings?.transcription_provider
+            || "faster_whisper";
+
+        return {
+            state: {
+                ...transcriptionSettings,
+                transcription_provider: selectedTranscriptionProvider,
+                transcription_model: settingsWhisperModel?.value || transcriptionSettings?.transcription_model || "large-v3",
+                transcription_initial_prompt: settingsWhisperInitialPrompt?.value ?? transcriptionSettings?.transcription_initial_prompt ?? "",
+                speaker_diarization_enabled: speakerDiarizationEnabled(),
+                llm_provider: selectedProvider,
+                llm_api_url: settingsApiUrl?.value?.trim() || transcriptionSettings?.llm_api_url || "",
+                llm_model: activeSettingsModelForProvider(selectedProvider) || transcriptionSettings?.llm_model || "",
+                llm_temperature: Number(settingsLlmTemperature?.value ?? transcriptionSettings?.llm_temperature ?? 0.2),
+                llm_num_ctx: Number(settingsLlmNumCtx?.value ?? transcriptionSettings?.llm_num_ctx ?? 4096),
+                llm_top_k: Number(settingsLlmTopK?.value ?? transcriptionSettings?.llm_top_k ?? 40),
+                llm_top_p: Number(settingsLlmTopP?.value ?? transcriptionSettings?.llm_top_p ?? 0.9),
+                llm_repeat_penalty: Number(settingsLlmRepeatPenalty?.value ?? transcriptionSettings?.llm_repeat_penalty ?? 1.1),
+                llm_seed: (settingsLlmSeed?.value?.trim() ?? "") === ""
+                    ? null
+                    : Number(settingsLlmSeed.value),
+                llm_num_predict: Number(settingsLlmNumPredict?.value ?? transcriptionSettings?.llm_num_predict ?? 256),
+                llm_timeout_seconds: Number(settingsLlmTimeoutSeconds?.value ?? transcriptionSettings?.llm_timeout_seconds ?? 600),
+                transcription_provider_available_models: transcriptionProviderModelsCache[selectedTranscriptionProvider]
+                    || transcriptionSettings?.transcription_provider_available_models
+                    || transcriptionSettings?.available_models
+                    || [],
+                llm_available_models: settingsProviderModelsCache[selectedProvider]
+                    || transcriptionSettings?.llm_available_models
+                    || [],
+            },
+            form: {
+                login: settingsLogin?.value ?? "",
+                password: settingsPassword?.value ?? "",
+                llm_api_key: settingsApiKey?.value ?? "",
+                speaker_diarization_token: settingsSpeakerDiarizationToken?.value ?? "",
+                openai_api_key: settingsOpenAiApiKey?.value ?? "",
+                anthropic_api_key: settingsAnthropicApiKey?.value ?? "",
+                openrouter_api_key: settingsOpenRouterApiKey?.value ?? "",
+                gemini_api_key: settingsGeminiApiKey?.value ?? "",
+            },
+            saved_at: new Date().toISOString(),
+        };
+    }
+
+    function persistSettingsDraft() {
+        try {
+            window.sessionStorage?.setItem(
+                transcriptionSettingsDraftStorageKey,
+                JSON.stringify(collectCurrentSettingsDraft()),
+            );
+        } catch (error) {
+            // Ignore sessionStorage failures for this optional draft cache.
+        }
+    }
+
+    function applySettingsDraftSnapshot(snapshot) {
+        if (!snapshot || typeof snapshot !== "object") {
+            return false;
+        }
+
+        const state = snapshot.state && typeof snapshot.state === "object"
+            ? snapshot.state
+            : null;
+        if (!state) {
+            return false;
+        }
+
+        replaceObjectContents(transcriptionSettings, {
+            ...transcriptionSettings,
+            ...state,
+        });
+
+        if (state.llm_provider && state.llm_model) {
+            settingsProviderSelectedModels[state.llm_provider] = String(state.llm_model).trim();
+        }
+
+        if (state.transcription_provider && state.transcription_model) {
+            transcriptionProviderSelectedModels[state.transcription_provider] = String(state.transcription_model).trim();
+        }
+
+        if (Array.isArray(state.llm_available_models) && state.llm_provider) {
+            settingsProviderModelsCache[state.llm_provider] = state.llm_available_models;
+        }
+
+        if (Array.isArray(state.transcription_provider_available_models) && state.transcription_provider) {
+            transcriptionProviderModelsCache[state.transcription_provider] = state.transcription_provider_available_models;
+        }
+
+        const previousDirtyState = isSettingsDirty;
+        isSettingsDirty = false;
+        syncSettingsFormFromState();
+        isSettingsDirty = true;
+
+        const form = snapshot.form && typeof snapshot.form === "object" ? snapshot.form : {};
+
+        if (settingsLogin && typeof form.login === "string") {
+            settingsLogin.value = form.login;
+        }
+
+        if (settingsPassword && typeof form.password === "string") {
+            settingsPassword.value = form.password;
+        }
+
+        if (settingsApiKey && typeof form.llm_api_key === "string") {
+            settingsApiKey.value = form.llm_api_key;
+        }
+
+        if (settingsSpeakerDiarizationToken && typeof form.speaker_diarization_token === "string") {
+            settingsSpeakerDiarizationToken.value = form.speaker_diarization_token;
+        }
+
+        if (settingsOpenAiApiKey && typeof form.openai_api_key === "string") {
+            settingsOpenAiApiKey.value = form.openai_api_key;
+        }
+
+        if (settingsAnthropicApiKey && typeof form.anthropic_api_key === "string") {
+            settingsAnthropicApiKey.value = form.anthropic_api_key;
+        }
+
+        if (settingsOpenRouterApiKey && typeof form.openrouter_api_key === "string") {
+            settingsOpenRouterApiKey.value = form.openrouter_api_key;
+        }
+
+        if (settingsGeminiApiKey && typeof form.gemini_api_key === "string") {
+            settingsGeminiApiKey.value = form.gemini_api_key;
+        }
+
+        if (!previousDirtyState) {
+            markSettingsDirty();
+        } else {
+            syncApiKeyStatusText();
+        }
+
+        return true;
+    }
+
+    function resolvePreferredTranscriptionSettings(serverSettings) {
+        const normalizedServer = normalizePersistedTranscriptionSettings(serverSettings) || {};
+        const localSnapshot = normalizePersistedTranscriptionSettings(persistedSavedTranscriptionSettings);
+
+        if (!localSnapshot) {
+            return normalizedServer;
+        }
+
+        const serverUpdatedAt = transcriptionSettingsUpdatedAtMs(normalizedServer);
+        const localUpdatedAt = transcriptionSettingsUpdatedAtMs(localSnapshot);
+
+        if (serverUpdatedAt > localUpdatedAt) {
+            writeStoredSavedTranscriptionSettings(normalizedServer);
+
+            return normalizedServer;
+        }
+
+        if (localUpdatedAt > serverUpdatedAt || serverUpdatedAt === 0) {
+            return {
+                ...normalizedServer,
+                ...localSnapshot,
+            };
+        }
+
+        return normalizedServer;
+    }
+
     function markSettingsDirty() {
         isSettingsDirty = true;
+        persistSettingsDraft();
     }
 
     function isVisibleElement(element) {
@@ -7758,6 +8560,8 @@
 
     function hasServerSettingsRefreshLock() {
         return isSettingsDirty || hasFocusedElement(
+            settingsLogin,
+            settingsPassword,
             settingsApiUrl,
             settingsApiKey,
             settingsProvider,
@@ -7775,6 +8579,14 @@
             settingsWhisperInitialPrompt,
             settingsSpeakerDiarizationEnabled,
             settingsSpeakerDiarizationToken,
+            settingsOpenAiApiKey,
+            settingsAnthropicApiKey,
+            settingsOpenRouterApiKey,
+            settingsGeminiApiKey,
+            settingsApiKeysBody,
+            settingsWhisperBody,
+            settingsBinotelBody,
+            ...Object.values(settingsProviderModelSelects),
         );
     }
 
@@ -7997,6 +8809,17 @@
         return rawValue;
     }
 
+    function normalizeAutomationMinimumDurationMinutes(value, fallback = 0) {
+        const fallbackValue = Math.max(0, Math.min(10, Number(fallback) || 0));
+        const normalizedValue = Number(value);
+
+        if (!Number.isFinite(normalizedValue)) {
+            return fallbackValue;
+        }
+
+        return Math.max(0, Math.min(10, Math.round(normalizedValue)));
+    }
+
     function normalizeAutomationScheduleDay(item = {}, day = 1, fallbackStartTime = "20:00", fallbackEndTime = "06:00") {
         const source = item && typeof item === "object" && !Array.isArray(item) ? item : {};
         const safeDay = Math.min(7, Math.max(1, Number(source.day || day) || day));
@@ -8158,6 +8981,13 @@
         return `${Number(rule?.interaction_number || 0)}|${String(rule?.direction || "any").trim() || "any"}`;
     }
 
+    function automationCalendarCallRowLabelFromValues(interactionNumber, direction) {
+        const safeInteractionNumber = Math.max(1, Number(interactionNumber || 1) || 1);
+        const safeDirection = String(direction || "out").trim() || "out";
+
+        return `${automationInteractionNumberLabel(safeInteractionNumber)} · ${automationCalendarDirectionLabel(safeDirection)}`;
+    }
+
     function automationCalendarRuleLabel(rule) {
         const interactionNumber = Math.max(1, Number(rule?.interaction_number || 1) || 1);
         const direction = String(rule?.direction || "any").trim() || "any";
@@ -8215,7 +9045,36 @@
         const interactionNumber = Math.max(1, Number(call?.interactionNumber || 0) || 0);
         const direction = String(call?.direction || "").trim() || "out";
 
-        return `${automationInteractionNumberLabel(interactionNumber)} · ${automationCalendarDirectionLabel(direction)}`;
+        return automationCalendarCallRowLabelFromValues(interactionNumber, direction);
+    }
+
+    function automationCalendarCallDurationSeconds(call) {
+        const duration = String(call?.duration || "").trim();
+
+        if (!/^\d{2,}:\d{2}$/.test(duration)) {
+            return 0;
+        }
+
+        return parseDurationToSeconds(duration);
+    }
+
+    function automationCalendarMinimumDurationSeconds() {
+        const minimumMinutes = normalizeAutomationMinimumDurationMinutes(
+            automationProcessingSettingsFor("evaluation")?.minimum_duration_minutes,
+            0,
+        );
+
+        return minimumMinutes * 60;
+    }
+
+    function meetsAutomationCalendarMinimumDuration(call) {
+        const minimumDurationSeconds = automationCalendarMinimumDurationSeconds();
+
+        if (minimumDurationSeconds <= 0) {
+            return true;
+        }
+
+        return automationCalendarCallDurationSeconds(call) >= minimumDurationSeconds;
     }
 
     function isAutomationCalendarProcessedCall(call) {
@@ -8223,7 +9082,366 @@
             || parseProcessedDateTime(call) > 0;
     }
 
-    function buildAutomationCalendarStats() {
+    function isAutomationCalendarCrmSkippedCall(call) {
+        const missingInCrm = typeof call?.missingInCrm === "boolean" ? call.missingInCrm : null;
+        const crmPhoneExists = typeof call?.crmPhoneExists === "boolean" ? call.crmPhoneExists : null;
+        const crmCase = String(call?.crmCase || "").trim().toLowerCase();
+
+        if (missingInCrm === true) {
+            return true;
+        }
+
+        if (missingInCrm === false) {
+            return false;
+        }
+
+        if (crmPhoneExists === false) {
+            return true;
+        }
+
+        if (crmPhoneExists === true) {
+            return false;
+        }
+
+        if (
+            crmCase === "low-quality lead"
+            || crmCase === "низькоякісний лід"
+            || crmCase === "no matches found"
+            || crmCase === "need add phone number"
+        ) {
+            return true;
+        }
+
+        const status = String(call?.altAutoStatus || "").trim();
+        const error = String(call?.altAutoError || "").trim().toLowerCase();
+
+        if (status !== "completed" || error === "") {
+            return false;
+        }
+
+        return error.includes("crm")
+            && !error.includes("уже знайдено в crm")
+            && (
+                error.includes("low-quality lead")
+                || error.includes("низькоякісний лід")
+                || error.includes("no matches found")
+                || error.includes("need add phone number")
+            );
+    }
+
+    function matchesAutomationMetricFilterCall(call, request, rules = []) {
+        if (!request || !call) {
+            return true;
+        }
+
+        const processed = isAutomationCalendarProcessedCall(call);
+        const meetsMinimumDuration = meetsAutomationCalendarMinimumDuration(call);
+        const matchedRule = meetsMinimumDuration ? resolveAutomationCalendarRuleForCall(call, rules) : null;
+        const crmSkipped = Boolean(matchedRule) && isAutomationCalendarCrmSkippedCall(call);
+
+        if (request.metric === "totalCalls") {
+            return true;
+        }
+
+        if (request.metric === "processedTotal") {
+            return processed;
+        }
+
+        if (request.metric === "required") {
+            return Boolean(matchedRule) && !crmSkipped;
+        }
+
+        if (request.metric === "processedScenario") {
+            return Boolean(matchedRule) && !crmSkipped && processed;
+        }
+
+        if (request.metric === "processedCrmSkipped") {
+            return Boolean(matchedRule) && crmSkipped && processed;
+        }
+
+        if (request.metric === "processedOutsideBaseRules") {
+            return processed && !Boolean(matchedRule);
+        }
+
+        if (request.metric === "remaining") {
+            return Boolean(matchedRule) && !crmSkipped && !processed;
+        }
+
+        if (request.metric === "crmSkipped") {
+            return Boolean(matchedRule) && crmSkipped;
+        }
+
+        return true;
+    }
+
+    function matchesAutomationRowFilterCall(call, request) {
+        if (!request || !call) {
+            return true;
+        }
+
+        return buildAutomationCalendarCallRowSignature(call) === request.signature;
+    }
+
+    function buildAutomationMetricFilterUrl(dateValue, metric) {
+        const url = new URL(window.location.pathname, window.location.origin);
+        url.searchParams.set("calendarDate", String(dateValue || "").trim());
+        url.searchParams.set("calendarMetric", String(metric || "").trim());
+        url.hash = "callsSection";
+
+        return url.toString();
+    }
+
+    function renderAutomationMetricFilterCard(dayStats, metric, label, value) {
+        const href = buildAutomationMetricFilterUrl(dayStats?.date || "", metric);
+
+        return `
+            <a
+                class="automation-calendar-day-stat automation-calendar-day-stat-link"
+                href="${escapeAttribute(href)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="${escapeAttribute(`Відкрити нову вкладку зі списком дзвінків для показника “${label}” за ${dayStats?.date || ""}`)}"
+            >
+                <div class="automation-calendar-day-stat-label">${escapeHtml(label)}</div>
+                <div class="automation-calendar-day-stat-value">${escapeHtml(value)}</div>
+            </a>
+        `;
+    }
+
+    function buildAutomationRowFilterUrl(dateValue, row) {
+        const url = new URL(window.location.pathname, window.location.origin);
+        url.searchParams.set("calendarDate", String(dateValue || "").trim());
+        url.searchParams.set("calendarRowInteraction", String(Math.max(1, Number(row?.interactionNumber || 1) || 1)));
+        url.searchParams.set("calendarRowDirection", String(row?.direction || "out").trim() || "out");
+
+        if (row?.isInScenario) {
+            url.searchParams.set("calendarRowScenario", "1");
+        }
+
+        url.hash = "callsSection";
+
+        return url.toString();
+    }
+
+    function renderAutomationCalendarDayRowFilterLink(dayStats, row) {
+        const href = buildAutomationRowFilterUrl(dayStats?.date || "", row);
+        const rowTitle = row?.label || "";
+        const scenarioHint = row?.isInScenario ? " Це сценарний рядок." : "";
+
+        return `
+            <a
+                class="automation-calendar-day-row automation-calendar-day-row-link ${row?.processed >= row?.total && row?.total > 0 ? "is-complete" : ""}"
+                href="${escapeAttribute(href)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="${escapeAttribute(`Відкрити нову вкладку зі списком дзвінків для рядка “${rowTitle}” за ${dayStats?.date || ""}.${scenarioHint}`)}"
+            >
+                <div class="automation-calendar-day-row-label">
+                    ${escapeHtml(row.label)}
+                    ${row.isInScenario ? '<span class="automation-calendar-day-row-badge">сценарій</span>' : ""}
+                </div>
+                <div class="automation-calendar-day-row-value">усього ${row.total}</div>
+                <div class="automation-calendar-day-row-progress">${row.processed}/${row.total}</div>
+            </a>
+        `;
+    }
+
+    function automationCalendarMonthKey(date) {
+        if (!(date instanceof Date) || !Number.isFinite(date.getTime())) {
+            return "";
+        }
+
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function normalizeAutomationCalendarStatsPayload(payload) {
+        const source = payload && typeof payload === "object" ? payload : {};
+        const days = Array.isArray(source.days) ? source.days : [];
+        const normalizedDays = days.map((day) => {
+            const required = Number(day?.required || 0) || 0;
+            const processed = Number(day?.processed || 0) || 0;
+            const remaining = Math.max(0, required - processed);
+
+            return {
+                ...day,
+                required,
+                processed,
+                remaining,
+                isComplete: required > 0 && remaining === 0,
+                rows: Array.isArray(day?.rows) ? day.rows : [],
+                allRows: Array.isArray(day?.allRows) ? day.allRows : [],
+            };
+        });
+
+        return {
+            ...source,
+            days: normalizedDays,
+            dayMap: new Map(normalizedDays.map((day) => [String(day?.date || "").trim(), day])),
+        };
+    }
+
+    function automationCalendarCrmStatusRank(day) {
+        const crmStatus = String(day?.crmStatus || "").trim().toLowerCase();
+
+        if (crmStatus === "ready") {
+            return 2;
+        }
+
+        if (crmStatus === "partial") {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    function mergeAutomationCalendarDayStats(currentDay, nextDay) {
+        const hasCurrent = currentDay && typeof currentDay === "object";
+        const hasNext = nextDay && typeof nextDay === "object";
+
+        if (!hasCurrent) {
+            return hasNext ? nextDay : null;
+        }
+
+        if (!hasNext) {
+            return currentDay;
+        }
+
+        const currentRank = automationCalendarCrmStatusRank(currentDay);
+        const nextRank = automationCalendarCrmStatusRank(nextDay);
+        const currentCrmSkipped = Number(currentDay?.crmSkipped || 0) || 0;
+        const nextCrmSkipped = Number(nextDay?.crmSkipped || 0) || 0;
+
+        if (currentRank > nextRank) {
+            return currentDay;
+        }
+
+        if (currentRank === nextRank && currentRank > 0 && currentCrmSkipped > nextCrmSkipped) {
+            return currentDay;
+        }
+
+        if (currentCrmSkipped > nextCrmSkipped && nextCrmSkipped === 0) {
+            return currentDay;
+        }
+
+        return nextDay;
+    }
+
+    function mergeAutomationCalendarStatsPayload(currentStats, nextStats) {
+        const normalizedCurrent = normalizeAutomationCalendarStatsPayload(currentStats);
+        const normalizedNext = normalizeAutomationCalendarStatsPayload(nextStats);
+
+        if (String(normalizedCurrent.month || "").trim() !== String(normalizedNext.month || "").trim()) {
+            return normalizedNext;
+        }
+
+        const mergedDaysByDate = new Map();
+
+        normalizedCurrent.days.forEach((day) => {
+            const dateKey = String(day?.date || "").trim();
+            if (dateKey !== "") {
+                mergedDaysByDate.set(dateKey, day);
+            }
+        });
+
+        normalizedNext.days.forEach((day) => {
+            const dateKey = String(day?.date || "").trim();
+            if (dateKey === "") {
+                return;
+            }
+
+            mergedDaysByDate.set(
+                dateKey,
+                mergeAutomationCalendarDayStats(mergedDaysByDate.get(dateKey) || null, day),
+            );
+        });
+
+        const mergedDays = [...mergedDaysByDate.values()].sort((left, right) => parseDisplayDateTime(left.date) - parseDisplayDateTime(right.date));
+        const mergedStats = {
+            ...normalizedCurrent,
+            ...normalizedNext,
+            days: mergedDays,
+            totalCandidates: mergedDays.reduce((sum, day) => sum + (Number(day?.candidateCount || 0) || 0), 0),
+            totalRequired: mergedDays.reduce((sum, day) => sum + (Number(day?.required || 0) || 0), 0),
+            totalProcessed: mergedDays.reduce((sum, day) => sum + (Number(day?.processed || 0) || 0), 0),
+            totalRemaining: mergedDays.reduce((sum, day) => sum + (Number(day?.remaining || 0) || 0), 0),
+            totalCrmSkipped: mergedDays.reduce((sum, day) => sum + (Number(day?.crmSkipped || 0) || 0), 0),
+            completedDays: mergedDays.filter((day) => Boolean(day?.isComplete)).length,
+        };
+
+        return normalizeAutomationCalendarStatsPayload(mergedStats);
+    }
+
+    function serializeAutomationCalendarStatsPayload(stats) {
+        if (!stats || typeof stats !== "object") {
+            return null;
+        }
+
+        return {
+            ...stats,
+            dayMap: undefined,
+        };
+    }
+
+    function readStoredAutomationCalendarStats() {
+        try {
+            const rawValue = window.localStorage?.getItem(automationCalendarStatsStorageKey);
+            if (!rawValue) {
+                return null;
+            }
+
+            const parsed = JSON.parse(rawValue);
+            return normalizeAutomationCalendarStatsPayload(parsed);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function writeStoredAutomationCalendarStats(stats) {
+        try {
+            const payload = serializeAutomationCalendarStatsPayload(stats);
+            if (!payload) {
+                window.localStorage?.removeItem(automationCalendarStatsStorageKey);
+                return false;
+            }
+
+            window.localStorage?.setItem(automationCalendarStatsStorageKey, JSON.stringify(payload));
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function clearStoredAutomationCalendarStats() {
+        try {
+            window.localStorage?.removeItem(automationCalendarStatsStorageKey);
+        } catch (error) {
+            // Ignore localStorage failures for this optional cache.
+        }
+    }
+
+    function shouldRefreshAutomationCalendarDayStats(dayStats, dateKey) {
+        const normalizedDate = String(dateKey || "").trim();
+        if (normalizedDate === "") {
+            return false;
+        }
+
+        if (
+            !automationCalendarServerStats
+            || typeof automationCalendarServerStats !== "object"
+            || !(automationCalendarServerStats.dayMap instanceof Map)
+        ) {
+            return true;
+        }
+
+        if (!dayStats || typeof dayStats !== "object") {
+            return true;
+        }
+
+        const crmStatus = String(dayStats.crmStatus || "").trim();
+        return crmStatus === "" || crmStatus === "pending";
+    }
+
+    function buildAutomationCalendarStatsFromCalls() {
         const rules = collectAutomationCalendarRules();
         const days = new Map();
         let totalRequired = 0;
@@ -8235,18 +9453,18 @@
                 return;
             }
 
-            const matchedRule = resolveAutomationCalendarRuleForCall(call, rules);
-            if (!matchedRule) {
-                return;
-            }
-
             if (!days.has(dateKey)) {
                 days.set(dateKey, {
                     date: dateKey,
                     totalCalls: 0,
                     totalProcessedCalls: 0,
+                    candidateCount: 0,
                     required: 0,
                     processed: 0,
+                    processedCrmSkipped: 0,
+                    processedOutsideBaseRules: 0,
+                    remaining: 0,
+                    crmSkipped: 0,
                     rows: new Map(),
                     allRows: new Map(),
                 });
@@ -8265,6 +9483,7 @@
                     direction,
                     total: 0,
                     processed: 0,
+                    crmSkipped: 0,
                     isInScenario: false,
                 };
 
@@ -8277,6 +9496,36 @@
                 }
 
                 dayStats.allRows.set(allRowSignature, allRowStats);
+            }
+
+            if (!meetsAutomationCalendarMinimumDuration(call)) {
+                return;
+            }
+
+            const matchedRule = resolveAutomationCalendarRuleForCall(call, rules);
+            if (!matchedRule) {
+                return;
+            }
+
+            dayStats.candidateCount += 1;
+            const crmSkipped = isAutomationCalendarCrmSkippedCall(call);
+
+            if (allRowSignature && dayStats.allRows.has(allRowSignature)) {
+                dayStats.allRows.get(allRowSignature).isInScenario = true;
+            }
+
+            if (crmSkipped) {
+                dayStats.crmSkipped += 1;
+
+                if (processed) {
+                    dayStats.processedCrmSkipped += 1;
+                }
+
+                if (allRowSignature && dayStats.allRows.has(allRowSignature)) {
+                    dayStats.allRows.get(allRowSignature).crmSkipped += 1;
+                }
+
+                return;
             }
 
             const rowStats = dayStats.rows.get(matchedRule.signature) || {
@@ -8299,16 +9548,18 @@
             }
 
             dayStats.rows.set(matchedRule.signature, rowStats);
-
-            if (allRowSignature && dayStats.allRows.has(allRowSignature)) {
-                dayStats.allRows.get(allRowSignature).isInScenario = true;
-            }
         });
 
         const orderedDays = [...days.values()]
             .map((day) => ({
                 ...day,
-                isComplete: day.required > 0 && day.processed >= day.required,
+                processedOutsideBaseRules: Math.max(
+                    0,
+                    (Number(day.totalProcessedCalls || 0) || 0) - ((Number(day.processed || 0) || 0) + (Number(day.processedCrmSkipped || 0) || 0))
+                ),
+                remaining: Math.max(0, (Number(day.required || 0) || 0) - (Number(day.processed || 0) || 0)),
+                isComplete: (Number(day.required || 0) || 0) > 0
+                    && Math.max(0, (Number(day.required || 0) || 0) - (Number(day.processed || 0) || 0)) === 0,
                 rows: [...day.rows.values()].sort((left, right) => {
                     if (left.interactionNumber !== right.interactionNumber) {
                         return left.interactionNumber - right.interactionNumber;
@@ -8332,8 +9583,96 @@
             days: orderedDays,
             totalRequired,
             totalProcessed,
+            totalRemaining: orderedDays.reduce((sum, day) => sum + (Number(day?.remaining || 0) || 0), 0),
             completedDays: orderedDays.filter((day) => day.isComplete).length,
         };
+    }
+
+    function buildAutomationCalendarStats() {
+        const targetDate = automationCalendarViewDate instanceof Date && Number.isFinite(automationCalendarViewDate.getTime())
+            ? automationCalendarViewDate
+            : new Date();
+        const targetMonth = automationCalendarMonthKey(targetDate);
+        const localStats = buildAutomationCalendarStatsFromCalls();
+
+        if (
+            automationCalendarServerStats
+            && typeof automationCalendarServerStats === "object"
+            && automationCalendarServerStats.dayMap instanceof Map
+            && String(automationCalendarServerStats.month || "").trim() === targetMonth
+        ) {
+            return mergeAutomationCalendarStatsPayload(localStats, automationCalendarServerStats);
+        }
+
+        return localStats;
+    }
+
+    async function refreshAutomationCalendarStats({ force = false, focusDate = "" } = {}) {
+        if (!automationCalendarStatsEndpoint) {
+            return false;
+        }
+
+        if (automationCalendarStatsLoading && automationCalendarStatsPromise) {
+            await automationCalendarStatsPromise;
+
+            if (force || String(focusDate || "").trim() !== "") {
+                return refreshAutomationCalendarStats({ force, focusDate });
+            }
+
+            return true;
+        }
+
+        const targetDate = automationCalendarViewDate instanceof Date && Number.isFinite(automationCalendarViewDate.getTime())
+            ? automationCalendarViewDate
+            : new Date();
+        const targetMonth = automationCalendarMonthKey(targetDate);
+
+        if (!force && automationCalendarServerStats?.month === targetMonth) {
+            return true;
+        }
+
+        automationCalendarStatsLoading = true;
+        automationCalendarStatsError = "";
+        automationCalendarStatsPromise = (async () => {
+            try {
+                const url = new URL(automationCalendarStatsEndpoint, window.location.origin);
+                url.searchParams.set("month", targetMonth);
+                if (String(focusDate || "").trim() !== "") {
+                    url.searchParams.set("focus_date", String(focusDate || "").trim());
+                }
+
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        Accept: "application/json",
+                    },
+                    cache: "no-store",
+                });
+
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.message || `Calendar stats request failed with status ${response.status}`);
+                }
+
+                automationCalendarServerStats = mergeAutomationCalendarStatsPayload(
+                    automationCalendarStatsCache || automationCalendarServerStats || buildAutomationCalendarStatsFromCalls(),
+                    payload.stats || {},
+                );
+                automationCalendarStatsCache = automationCalendarServerStats;
+                writeStoredAutomationCalendarStats(automationCalendarServerStats);
+
+                return true;
+            } catch (error) {
+                automationCalendarStatsError = error instanceof Error
+                    ? error.message
+                    : "Не вдалося оновити календар із сервера.";
+                return false;
+            } finally {
+                automationCalendarStatsLoading = false;
+                automationCalendarStatsPromise = null;
+            }
+        })();
+
+        return automationCalendarStatsPromise;
     }
 
     function resolveAutomationCalendarViewDate(stats) {
@@ -8417,9 +9756,36 @@
             element.style.top = "";
             element.style.left = "";
             element.style.width = "";
+            element.style.height = "";
             element.style.maxHeight = "";
             element.style.zIndex = "";
+            element.style.transform = "";
+            element.style.visibility = "";
         });
+    }
+
+    function prepareAutomationCalendarPopoverOpeningStyles() {
+        if (!automationCalendarPopover) {
+            return;
+        }
+
+        if (window.innerWidth <= 1280) {
+            clearAutomationCalendarPopoverStyles();
+            return;
+        }
+
+        automationCalendarPopover.style.position = "fixed";
+        automationCalendarPopover.style.left = "50%";
+        automationCalendarPopover.style.top = "50%";
+        automationCalendarPopover.style.width = `${Math.min(760, Math.max(560, window.innerWidth - 56))}px`;
+        automationCalendarPopover.style.maxHeight = `${Math.max(420, window.innerHeight - 56)}px`;
+        automationCalendarPopover.style.zIndex = "90";
+        automationCalendarPopover.style.transform = "translate(-50%, -50%)";
+        automationCalendarPopover.style.visibility = "hidden";
+
+        if (automationCalendarDayPopover) {
+            automationCalendarDayPopover.style.visibility = "hidden";
+        }
     }
 
     function positionAutomationCalendarPopovers() {
@@ -8447,10 +9813,12 @@
         automationCalendarPopover.style.width = `${mainWidth}px`;
         automationCalendarPopover.style.maxHeight = `${Math.max(420, window.innerHeight - (margin * 2))}px`;
         automationCalendarPopover.style.zIndex = "90";
+        automationCalendarPopover.style.transform = "";
 
         const mainHeight = Math.min(automationCalendarPopover.offsetHeight || 0, window.innerHeight - (margin * 2));
         const top = Math.max(margin, Math.round((window.innerHeight - mainHeight) / 2));
         automationCalendarPopover.style.top = `${top}px`;
+        automationCalendarPopover.style.visibility = "visible";
 
         if (detailVisible && automationCalendarDayPopover) {
             const detailLeft = Math.min(
@@ -8460,17 +9828,24 @@
             automationCalendarDayPopover.style.position = "fixed";
             automationCalendarDayPopover.style.left = `${detailLeft}px`;
             automationCalendarDayPopover.style.width = `${detailWidth}px`;
-            automationCalendarDayPopover.style.maxHeight = `${Math.max(320, window.innerHeight - (margin * 2))}px`;
+            automationCalendarDayPopover.style.height = `${mainHeight}px`;
+            automationCalendarDayPopover.style.maxHeight = `${mainHeight}px`;
             automationCalendarDayPopover.style.zIndex = "91";
+            automationCalendarDayPopover.style.transform = "";
 
-            const detailHeight = Math.min(automationCalendarDayPopover.offsetHeight || 0, window.innerHeight - (margin * 2));
-            const detailTop = Math.max(margin, Math.min(top, window.innerHeight - detailHeight - margin));
-            automationCalendarDayPopover.style.top = `${detailTop}px`;
+            automationCalendarDayPopover.style.top = `${top}px`;
+            automationCalendarDayPopover.style.visibility = "visible";
         }
     }
 
     function renderAutomationCalendarDayDetails(dayStats = null) {
         if (!automationCalendarDayPopover || !automationCalendarDaySummary || !automationCalendarDayTitle || !automationCalendarDaySubtitle) {
+            return;
+        }
+
+        if (automationCalendarPopover?.hidden && dayStats) {
+            automationCalendarDayPopover.hidden = true;
+            automationCalendarDaySummary.innerHTML = "";
             return;
         }
 
@@ -8485,35 +9860,35 @@
 
         automationCalendarDayPopover.hidden = false;
         automationCalendarDayTitle.textContent = `Обробка дзвінків · ${dayStats.date}`;
-        automationCalendarDaySubtitle.textContent = dayStats.isComplete
-            ? `За день ${dayStats.totalCalls} дзвінків. Усі ${dayStats.required} дзвінків за активними сценаріями вже оброблені.`
-            : `За день ${dayStats.totalCalls} дзвінків. Під сценарій потрапляє ${dayStats.required}, уже оброблено ${dayStats.processed}.`;
+        const crmStatus = String(dayStats.crmStatus || "").trim();
+        const crmStatusLabel = String(dayStats.crmStatusLabel || "").trim();
+        const crmCardValue = crmStatus === "pending" ? "—" : String(dayStats.crmSkipped || 0);
+        const totalProcessedCallsValue = String(dayStats.totalProcessedCalls || 0);
+        const processedCrmSkippedValue = String(dayStats.processedCrmSkipped || 0);
+        const processedOutsideBaseRulesValue = String(dayStats.processedOutsideBaseRules || 0);
+        const requiredCallsValue = Number(dayStats.required || 0) || 0;
+        const processedScenarioCallsValue = Number(dayStats.processed || 0) || 0;
+        const remainingCallsNumeric = Math.max(0, requiredCallsValue - processedScenarioCallsValue);
+        const remainingCallsValue = String(remainingCallsNumeric);
+        const baseSubtitle = dayStats.isComplete
+            ? `За день ${dayStats.totalCalls} дзвінків. Усього вже оброблено ${totalProcessedCallsValue}: за поточним сценарієм ${processedScenarioCallsValue}, із них ${processedCrmSkippedValue} тепер відсіяні CRM, а ${processedOutsideBaseRulesValue} були оброблені поза базовими правилами. Під сценарій після всіх фільтрів потрапляє ${requiredCallsValue}; усі потрібні дзвінки вже оброблені.`
+            : `За день ${dayStats.totalCalls} дзвінків. Усього вже оброблено ${totalProcessedCallsValue}: за поточним сценарієм ${processedScenarioCallsValue}, із них ${processedCrmSkippedValue} тепер відсіяні CRM, а ${processedOutsideBaseRulesValue} були оброблені поза базовими правилами. Під сценарій після всіх фільтрів потрапляє ${requiredCallsValue}, залишилось ${remainingCallsNumeric}.`;
+        automationCalendarDaySubtitle.textContent = crmStatusLabel !== ""
+            ? `${baseSubtitle} ${crmStatusLabel}`
+            : baseSubtitle;
         automationCalendarDaySummary.innerHTML = `
             <div class="automation-calendar-day-totals">
-                <div class="automation-calendar-day-stat">
-                    <div class="automation-calendar-day-stat-label">Усього дзвінків</div>
-                    <div class="automation-calendar-day-stat-value">${dayStats.totalCalls}</div>
-                </div>
-                <div class="automation-calendar-day-stat">
-                    <div class="automation-calendar-day-stat-label">Під сценарій</div>
-                    <div class="automation-calendar-day-stat-value">${dayStats.required}</div>
-                </div>
-                <div class="automation-calendar-day-stat">
-                    <div class="automation-calendar-day-stat-label">Уже оброблено</div>
-                    <div class="automation-calendar-day-stat-value">${dayStats.processed}</div>
-                </div>
+                ${renderAutomationMetricFilterCard(dayStats, "totalCalls", "Усього дзвінків", String(dayStats.totalCalls || 0))}
+                ${renderAutomationMetricFilterCard(dayStats, "processedTotal", "Оброблено всього за день", totalProcessedCallsValue)}
+                ${renderAutomationMetricFilterCard(dayStats, "required", "Під сценарій", String(requiredCallsValue))}
+                ${renderAutomationMetricFilterCard(dayStats, "processedScenario", "Оброблено за сценарієм", String(processedScenarioCallsValue))}
+                ${renderAutomationMetricFilterCard(dayStats, "processedCrmSkipped", "Оброблено, але відсіяно CRM", processedCrmSkippedValue)}
+                ${renderAutomationMetricFilterCard(dayStats, "processedOutsideBaseRules", "Оброблено поза базовими правилами", processedOutsideBaseRulesValue)}
+                ${renderAutomationMetricFilterCard(dayStats, "remaining", "Залишилось обробити", remainingCallsValue)}
+                ${renderAutomationMetricFilterCard(dayStats, "crmSkipped", "Відсіяно CRM", crmCardValue)}
             </div>
             <div class="automation-calendar-day-breakdown">
-                ${dayStats.allRows.length > 0 ? dayStats.allRows.map((row) => `
-                    <div class="automation-calendar-day-row ${row.processed >= row.total && row.total > 0 ? "is-complete" : ""}">
-                        <div class="automation-calendar-day-row-label">
-                            ${escapeHtml(row.label)}
-                            ${row.isInScenario ? '<span class="automation-calendar-day-row-badge">сценарій</span>' : ""}
-                        </div>
-                        <div class="automation-calendar-day-row-value">усього ${row.total}</div>
-                        <div class="automation-calendar-day-row-progress">${row.processed}/${row.total}</div>
-                    </div>
-                `).join("") : `
+                ${dayStats.allRows.length > 0 ? dayStats.allRows.map((row) => renderAutomationCalendarDayRowFilterLink(dayStats, row)).join("") : `
                     <div class="automation-calendar-day-empty">Для цієї дати немає дзвінків.</div>
                 `}
             </div>
@@ -8521,9 +9896,31 @@
         positionAutomationCalendarPopovers();
     }
 
-    function openAutomationCalendarDate(dateKey) {
+    async function openAutomationCalendarDate(dateKey) {
         const normalizedDate = String(dateKey || "").trim();
         if (normalizedDate === "") {
+            return;
+        }
+
+        const sessionId = automationCalendarSessionId;
+        const cachedStats = automationCalendarStatsCache && typeof automationCalendarStatsCache === "object"
+            ? automationCalendarStatsCache
+            : buildAutomationCalendarStats();
+        const cachedDayStats = cachedStats.dayMap instanceof Map ? cachedStats.dayMap.get(normalizedDate) || null : null;
+
+        automationCalendarSelectedDate = normalizedDate;
+        renderAutomationCalendar();
+        renderAutomationCalendarDayDetails(cachedDayStats);
+
+        if (shouldRefreshAutomationCalendarDayStats(cachedDayStats, normalizedDate)) {
+            await refreshAutomationCalendarStats({ force: true, focusDate: normalizedDate });
+        }
+
+        if (
+            sessionId !== automationCalendarSessionId
+            || !automationCalendarPopover
+            || automationCalendarPopover.hidden
+        ) {
             return;
         }
 
@@ -8532,14 +9929,7 @@
             : buildAutomationCalendarStats();
         const dayStats = stats.dayMap instanceof Map ? stats.dayMap.get(normalizedDate) || null : null;
 
-        automationCalendarSelectedDate = normalizedDate;
         renderAutomationCalendar();
-
-        if (!dayStats || Number(dayStats.required || 0) <= 0) {
-            renderAutomationCalendarDayDetails(null);
-            return;
-        }
-
         renderAutomationCalendarDayDetails(dayStats);
     }
 
@@ -8550,6 +9940,9 @@
 
         const stats = buildAutomationCalendarStats();
         automationCalendarStatsCache = stats;
+        if (String(stats?.month || "").trim() !== "") {
+            writeStoredAutomationCalendarStats(stats);
+        }
         automationCalendarViewDate = resolveAutomationCalendarViewDate(stats);
         renderAutomationCalendarMiniPreview(stats);
         renderAutomationCalendarWeekdays();
@@ -8597,7 +9990,7 @@
                     data-automation-calendar-date="${dateKey}"
                 >
                     <span class="automation-calendar-day-number">${day}</span>
-                    <span class="automation-calendar-day-count">${dayStats ? `${dayStats.required} дзв.` : "—"}</span>
+                    <span class="automation-calendar-day-count">${dayStats ? `${dayStats.remaining} дзв.` : "—"}</span>
                     <span class="automation-calendar-day-meta">${dayStats ? `${dayStats.processed}/${dayStats.required} оброб.` : "Немає"}</span>
                 </button>
             `);
@@ -8608,14 +10001,30 @@
         positionAutomationCalendarPopovers();
     }
 
-    function openAutomationCalendar() {
+    async function openAutomationCalendar() {
         if (!automationCalendarPopover || !automationCalendarLauncher) {
             return;
         }
 
+        automationCalendarSessionId += 1;
+        const sessionId = automationCalendarSessionId;
         automationCalendarLauncher.classList.add("is-open");
         automationCalendarLauncher.setAttribute("aria-expanded", "true");
+        if (automationCalendarBackdrop) {
+            automationCalendarBackdrop.hidden = false;
+        }
+        syncBodyScrollLock();
+        prepareAutomationCalendarPopoverOpeningStyles();
         automationCalendarPopover.hidden = false;
+        await refreshAutomationCalendarStats({
+            force: false,
+            focusDate: automationCalendarSelectedDate,
+        });
+
+        if (sessionId !== automationCalendarSessionId || automationCalendarPopover.hidden) {
+            return;
+        }
+
         renderAutomationCalendar();
         positionAutomationCalendarPopovers();
     }
@@ -8626,8 +10035,13 @@
         }
 
         automationCalendarPopover.hidden = true;
+        automationCalendarSessionId += 1;
         automationCalendarLauncher.classList.remove("is-open");
         automationCalendarLauncher.setAttribute("aria-expanded", "false");
+        if (automationCalendarBackdrop) {
+            automationCalendarBackdrop.hidden = true;
+        }
+        syncBodyScrollLock();
         clearAutomationCalendarPopoverStyles();
 
         if (!keepDayDetails) {
@@ -8636,13 +10050,13 @@
         }
     }
 
-    function toggleAutomationCalendar() {
+    async function toggleAutomationCalendar() {
         if (!automationCalendarPopover) {
             return;
         }
 
         if (automationCalendarPopover.hidden) {
-            openAutomationCalendar();
+            await openAutomationCalendar();
             return;
         }
 
@@ -9899,7 +11313,7 @@ TEXT
     }
 
     function syncCallsState({ preserveCustomRange = true } = {}) {
-        hasCalls = calls.length > 0;
+        hasCalls = totalCallsCount > 0;
 
         if (!hasCalls) {
             if (!preserveCustomRange || !hasCustomDateRange) {
@@ -9913,20 +11327,17 @@ TEXT
             return;
         }
 
-        const allCallDates = calls
-            .map((call) => normalizeDate(parseDateOnly(call.date)))
-            .sort((left, right) => left.getTime() - right.getTime());
-        const nextStart = allCallDates[0];
-        const nextEnd = allCallDates[allCallDates.length - 1];
-
-        if (!preserveCustomRange || !hasCustomDateRange || !rangeStart || !rangeEnd) {
-            rangeStart = nextStart;
-            rangeEnd = nextEnd;
+        if (!preserveCustomRange || !hasCustomDateRange) {
+            rangeStart = null;
+            rangeEnd = null;
         }
 
         if (!calendarViewDate) {
-            const seedDate = rangeStart || nextStart;
-            calendarViewDate = new Date(seedDate.getFullYear(), seedDate.getMonth(), 1);
+            const seedDate = rangeStart || rangeEnd || new Date();
+
+            if (seedDate) {
+                calendarViewDate = new Date(seedDate.getFullYear(), seedDate.getMonth(), 1);
+            }
         }
     }
 
@@ -10099,6 +11510,10 @@ TEXT
     }
 
     function getFilteredCalls() {
+        const automationMetricRules = isAutomationMetricFilterMode
+            ? collectAutomationCalendarRules()
+            : [];
+
         return calls.filter((call) => {
             const searchValue = normalizePhone(phoneSearchValue);
             const employeeMatch = employeeFilterValue === "all" || call.employee === employeeFilterValue;
@@ -10111,7 +11526,12 @@ TEXT
             const startMatch = !rangeStart || callDate >= rangeStart;
             const endMatch = !rangeEnd || callDate <= rangeEnd;
             const dateMatch = startMatch && endMatch;
-            return employeeMatch && numberMatch && dateMatch;
+            const metricMatch = !isAutomationMetricFilterMode
+                || matchesAutomationMetricFilterCall(call, automationMetricFilterRequest, automationMetricRules);
+            const rowMatch = !isAutomationRowFilterMode
+                || matchesAutomationRowFilterCall(call, automationRowFilterRequest);
+
+            return employeeMatch && numberMatch && dateMatch && metricMatch && rowMatch;
         });
     }
 
@@ -10423,7 +11843,7 @@ TEXT
     }
 
     function renderFilterOptions() {
-        const employees = [...new Set(calls.map((call) => call.employee))];
+        const employees = Array.isArray(callsEmployees) ? callsEmployees.filter((employee) => String(employee || "").trim() !== "") : [];
         const nextEmployeeFilterValue = employees.includes(employeeFilterValue) ? employeeFilterValue : "all";
 
         employeeFilterValue = nextEmployeeFilterValue;
@@ -10456,14 +11876,17 @@ TEXT
     }
 
     function renderDateRangeSummary() {
-        const startText = rangeStart ? formatDate(rangeStart) : "Усі дати";
-        const endText = rangeEnd ? formatDate(rangeEnd) : startText;
-        const label = rangeStart && rangeEnd ? `${startText} - ${endText}` : startText;
+        const label = rangeStart
+            ? (rangeEnd && !isSameDate(rangeStart, rangeEnd)
+                ? `${formatDate(rangeStart)} - ${formatDate(rangeEnd)}`
+                : formatDate(rangeStart))
+            : "Усі дати";
+        const monthLabel = currentCalendarMonthLabel();
 
         dateRangeText.textContent = label;
         activeDateLabel.textContent = label;
         if (managersDateRangeText) {
-            managersDateRangeText.textContent = label;
+            managersDateRangeText.textContent = monthLabel;
         }
     }
 
@@ -10541,7 +11964,8 @@ TEXT
 
         draftRangeStart = rangeStart ? new Date(rangeStart) : null;
         draftRangeEnd = rangeEnd ? new Date(rangeEnd) : null;
-        calendarViewDate = new Date((draftRangeStart || rangeStart || parseDateOnly(calls[0].date)).getFullYear(), (draftRangeStart || rangeStart || parseDateOnly(calls[0].date)).getMonth(), 1);
+        const seedDate = draftRangeStart || rangeStart || rangeEnd || new Date();
+        calendarViewDate = new Date(seedDate.getFullYear(), seedDate.getMonth(), 1);
         renderCalendar();
         datePicker.hidden = false;
     }
@@ -10550,48 +11974,338 @@ TEXT
         datePicker.hidden = true;
     }
 
+    function applyDateFilter(startDate, endDate = null, { closePickerAfterApply = true } = {}) {
+        const normalizedStart = startDate ? normalizeDate(startDate) : null;
+        const normalizedEnd = endDate ? normalizeDate(endDate) : normalizedStart;
+
+        rangeStart = normalizedStart;
+        rangeEnd = normalizedEnd;
+        hasCustomDateRange = Boolean(normalizedStart);
+        draftRangeStart = normalizedStart ? new Date(normalizedStart) : null;
+        draftRangeEnd = normalizedEnd ? new Date(normalizedEnd) : null;
+
+        if (closePickerAfterApply) {
+            closeDatePicker();
+        }
+
+        callsPage = 1;
+        scheduleCallsListingRefresh({ force: true });
+    }
+
     function handleCalendarDateSelect(value) {
         const clickedDate = normalizeDate(parseDateOnly(value));
 
-        if (!draftRangeStart || (draftRangeStart && draftRangeEnd)) {
-            draftRangeStart = clickedDate;
-            draftRangeEnd = null;
-        } else if (clickedDate.getTime() < draftRangeStart.getTime()) {
-            draftRangeStart = clickedDate;
-        } else {
-            draftRangeEnd = clickedDate;
+        if (
+            draftRangeStart
+            && draftRangeEnd
+            && isSameDate(draftRangeStart, clickedDate)
+            && isSameDate(draftRangeEnd, clickedDate)
+        ) {
+            applyDateFilter(null, null);
+            return;
         }
 
-        renderCalendar();
+        applyDateFilter(clickedDate, clickedDate);
+    }
+
+    function dateFilterQueryValue(date) {
+        if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+            return "";
+        }
+
+        return [
+            date.getFullYear(),
+            String(date.getMonth() + 1).padStart(2, "0"),
+            String(date.getDate()).padStart(2, "0"),
+        ].join("-");
+    }
+
+    function buildCallsListingQueryParams() {
+        const params = new URLSearchParams();
+
+        params.set("page", String(Math.max(1, callsPage)));
+        params.set("per_page", String(callsPerPage));
+        params.set("sort_field", sortField);
+        params.set("sort_direction", sortDirection);
+
+        if (phoneSearchValue.trim() !== "") {
+            params.set("phone", phoneSearchValue.trim());
+        }
+
+        if (employeeFilterValue !== "all") {
+            params.set("employee", employeeFilterValue);
+        }
+
+        const dateStart = dateFilterQueryValue(rangeStart);
+        const dateEnd = dateFilterQueryValue(rangeEnd);
+
+        if (dateStart !== "") {
+            params.set("date_start", dateStart);
+        }
+
+        if (dateEnd !== "") {
+            params.set("date_end", dateEnd);
+        }
+
+        if (interactionHistoryRequest) {
+            params.set("interactionPhone", interactionHistoryRequest.phone);
+            params.set("interactionManager", interactionHistoryRequest.manager);
+        }
+
+        if (automationMetricFilterRequest) {
+            params.set("calendarMetric", automationMetricFilterRequest.metric);
+            params.set("calendarDate", automationMetricFilterRequest.dateLabel);
+        }
+
+        if (automationRowFilterRequest) {
+            params.set("calendarDate", automationRowFilterRequest.dateLabel);
+            params.set("calendarRowInteraction", String(automationRowFilterRequest.interactionNumber));
+            params.set("calendarRowDirection", String(automationRowFilterRequest.direction || ""));
+            params.set("calendarRowScenario", automationRowFilterRequest.isInScenario ? "1" : "0");
+        }
+
+        return params;
+    }
+
+    function callsListingCacheKey() {
+        const params = buildCallsListingQueryParams();
+
+        return `${callsVersion}::${params.toString()}`;
+    }
+
+    function applyCallsListingPayload(payload, { cacheKey = "" } = {}) {
+        const nextItems = Array.isArray(payload?.items) ? payload.items : [];
+        const pagination = payload?.pagination && typeof payload.pagination === "object"
+            ? payload.pagination
+            : {};
+        const nextEmployees = Array.isArray(payload?.employeeOptions) ? payload.employeeOptions : [];
+        const nextCallsVersion = typeof payload?.callsVersion === "string"
+            ? payload.callsVersion.trim()
+            : "";
+        const historyContext = payload?.historyContext && typeof payload.historyContext === "object"
+            ? payload.historyContext
+            : null;
+
+        calls = nextItems;
+        callsEmployees = nextEmployees;
+        totalCallsCount = Number.isFinite(Number(pagination.total)) ? Math.max(0, Number(pagination.total)) : nextItems.length;
+        totalCallsPages = Number.isFinite(Number(pagination.totalPages)) ? Math.max(1, Number(pagination.totalPages)) : (totalCallsCount > 0 ? 1 : 0);
+        callsPage = Number.isFinite(Number(pagination.page)) ? Math.max(1, Number(pagination.page)) : 1;
+        selectedCallId = nextItems.some((call) => call.id === selectedCallId) ? selectedCallId : (nextItems[0]?.id ?? null);
+        hasCalls = totalCallsCount > 0;
+
+        if (nextCallsVersion !== "") {
+            callsVersion = nextCallsVersion;
+        }
+
+        if (cacheKey !== "") {
+            callsListingCache.set(cacheKey, {
+                items: nextItems,
+                pagination,
+                employeeOptions: nextEmployees,
+                historyContext,
+                callsVersion: nextCallsVersion || callsVersion,
+            });
+        }
+
+        renderFilterOptions();
+        syncCallsState({ preserveCustomRange: true });
+        renderRows();
+
+        if (isInteractionHistoryMode && historyContext) {
+            const displayPhone = String(historyContext.displayPhone || interactionHistoryRequest?.phone || "").trim();
+            const displayManager = String(historyContext.displayManager || interactionHistoryRequest?.manager || "").trim();
+            const periodText = String(historyContext.periodText || "Немає дзвінків").trim() || "Немає дзвінків";
+
+            document.title = `Історія ${displayPhone} - ${displayManager}`;
+            document.querySelector("#callsSection .card-title").textContent = "Історія взаємодій";
+            setCallsSectionCardText(`Клієнт: ${displayPhone}. Менеджер: ${displayManager}. Період: ${periodText}.`);
+        }
+    }
+
+    async function refreshCallsListing({ force = false } = {}) {
+        if (!callsListingEndpoint) {
+            return;
+        }
+
+        if (!force && currentSectionId() !== "callsSection") {
+            return;
+        }
+
+        const cacheKey = callsListingCacheKey();
+        const cachedPayload = callsListingCache.get(cacheKey);
+
+        if (cachedPayload) {
+            applyCallsListingPayload(cachedPayload, { cacheKey });
+            return;
+        }
+
+        callsListingAbortController?.abort();
+        const requestId = ++callsListingRequestId;
+        const controller = new AbortController();
+        callsListingAbortController = controller;
+        isCallsListingRefreshing = true;
+
+        try {
+            if (calls.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="15" style="text-align:center; padding: 28px 16px; color: #7c8398;">
+                            Завантажуємо список дзвінків…
+                        </td>
+                    </tr>
+                `;
+            }
+
+            const url = new URL(callsListingEndpoint, window.location.origin);
+            buildCallsListingQueryParams().forEach((value, key) => {
+                url.searchParams.set(key, value);
+            });
+
+            const response = await fetch(url.toString(), {
+                headers: {
+                    Accept: "application/json",
+                },
+                cache: "no-store",
+                signal: controller.signal,
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(payload.message || `Calls listing failed with status ${response.status}`);
+            }
+
+            if (requestId !== callsListingRequestId) {
+                return;
+            }
+
+            applyCallsListingPayload(payload, { cacheKey });
+        } catch (error) {
+            if (error?.name === "AbortError") {
+                return;
+            }
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="15" style="text-align:center; padding: 28px 16px; color: #b42318;">
+                        Не вдалося завантажити список дзвінків.
+                    </td>
+                </tr>
+            `;
+        } finally {
+            if (requestId === callsListingRequestId) {
+                isCallsListingRefreshing = false;
+            }
+        }
+    }
+
+    function scheduleCallsListingRefresh({ force = false, immediate = false } = {}) {
+        if (callsListingRefreshTimer !== null) {
+            window.clearTimeout(callsListingRefreshTimer);
+            callsListingRefreshTimer = null;
+        }
+
+        const run = () => {
+            callsListingRefreshTimer = null;
+            refreshCallsListing({ force });
+        };
+
+        if (immediate) {
+            run();
+            return;
+        }
+
+        callsListingRefreshTimer = window.setTimeout(run, 220);
+    }
+
+    function applyManagersSummaryPayload(payload) {
+        managersSummaryRows = Array.isArray(payload?.items) ? payload.items : [];
+        managersSummaryCacheVersion = callsVersion;
+        managersSummaryCacheRows = managersSummaryRows;
+        renderManagersRows();
+    }
+
+    async function refreshManagersSummary({ force = false } = {}) {
+        if (!managersSummaryEndpoint || (!force && currentSectionId() !== "managersSection")) {
+            return;
+        }
+
+        if (isManagersSummaryRefreshing) {
+            return;
+        }
+
+        if (managersSummaryCacheVersion === callsVersion && Array.isArray(managersSummaryCacheRows) && managersSummaryCacheRows.length > 0) {
+            managersSummaryRows = managersSummaryCacheRows;
+            renderManagersRows();
+            return;
+        }
+
+        isManagersSummaryRefreshing = true;
+
+        try {
+            if (managersSummaryRows.length === 0) {
+                managersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding: 28px 16px; color: #7c8398;">
+                            Завантажуємо статистику менеджерів…
+                        </td>
+                    </tr>
+                `;
+            }
+
+            const response = await fetch(managersSummaryEndpoint, {
+                headers: {
+                    Accept: "application/json",
+                },
+                cache: "no-store",
+            });
+
+            const payload = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(payload.message || `Managers summary failed with status ${response.status}`);
+            }
+
+            applyManagersSummaryPayload(payload);
+        } catch (error) {
+            managersTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align:center; padding: 28px 16px; color: #b42318;">
+                        Не вдалося завантажити статистику менеджерів.
+                    </td>
+                </tr>
+            `;
+        } finally {
+            isManagersSummaryRefreshing = false;
+        }
     }
 
     function renderRows() {
-        const rows = getProcessedCalls();
-        const paginationState = paginateRows(rows, callsPage, callsPerPage);
-        const pageRows = paginationState.pageItems;
-        callsPage = paginationState.currentPage;
+        const rows = Array.isArray(calls) ? calls : [];
 
-        if (!pageRows.some((call) => call.id === selectedCallId)) {
-            selectedCallId = pageRows[0]?.id ?? rows[0]?.id ?? null;
+        if (!rows.some((call) => call.id === selectedCallId)) {
+            selectedCallId = rows[0]?.id ?? null;
         }
 
-        callsCount.textContent = `${rows.length} дзвінків`;
+        callsCount.textContent = `${totalCallsCount} дзвінків`;
         renderDateRangeSummary();
         renderSortState();
 
         if (rows.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="13" style="text-align:center; padding: 28px 16px; color: #7c8398;">
+                    <td colspan="15" style="text-align:center; padding: 28px 16px; color: #7c8398;">
                         За вибраними фільтрами дзвінків нічого не знайдено.
                     </td>
                 </tr>
             `;
+            applyCallsTableColumnOrder(callsTableColumnOrder);
             renderPagination(callsPagination, 1, 1, 0, callsPerPage, "дзвінків");
             return;
         }
 
-        tableBody.innerHTML = pageRows.map((call) => {
+        tableBody.innerHTML = rows.map((call) => {
             const activeClass = call.id === selectedCallId ? "active" : "";
             const directionClass = call.direction === "in" ? "dir-in" : "dir-out";
             const directionLabel = call.direction === "in" ? "Вхідний дзвінок" : "Вихідний дзвінок";
@@ -10615,6 +12329,17 @@ TEXT
             const interactionNumberBadge = interactionCount > 1 && !isInteractionHistoryMode
                 ? `<a class="interaction-count-badge" href="${escapeAttribute(buildInteractionHistoryUrl(call))}" target="_blank" data-interaction-history-link="true" aria-label="Відкрити історію взаємодій" title="${escapeAttribute(interactionNumberTitle)}">${escapeHtml(interactionNumberLabel)}</a>`
                 : `<span class="interaction-count-badge" data-interaction-count-static="true" title="${escapeAttribute(interactionNumberTitle)}">${escapeHtml(interactionNumberLabel)}</span>`;
+            const missingInCrm = typeof call.missingInCrm === "boolean" ? call.missingInCrm : null;
+            const crmCase = String(call.crmCase || "").trim();
+            const crmManager = String(call.crmManager || "").trim();
+            const crmCheckedAt = String(call.crmCheckedAt || "").trim();
+            const crmError = String(call.crmLookupError || "").trim();
+            const crmCheckedTitle = crmCheckedAt ? ` Перевірено: ${crmCheckedAt}` : "";
+            const crmBadge = missingInCrm === true
+                ? `<span class="crm-missing-badge" title="${escapeAttribute(crmCase ? `CRM не внесла номер у базу. Статус: ${crmCase}.${crmCheckedTitle}` : `CRM не знайшла цей номер.${crmCheckedTitle}`)}">Так</span>`
+                : missingInCrm === false
+                    ? `<span class="crm-missing-badge is-clear" title="${escapeAttribute(crmManager ? `Номер знайдено в CRM. Менеджер: ${crmManager}.${crmCheckedTitle}` : `Номер знайдено в CRM.${crmCheckedTitle}`)}">Ні</span>`
+                    : `<span class="crm-missing-badge is-clear" title="${escapeAttribute(crmError ? `CRM-перевірка не завершилась: ${crmError}` : 'Для цього дзвінка ще немає збережених CRM-даних')}">—</span>`;
             const employeeMeta = /\d+\s*>\s*\d+/.test(String(call.employeeMeta ?? ""))
                 ? ""
                 : String(call.employeeMeta ?? "");
@@ -10634,7 +12359,7 @@ TEXT
 
             return `
                 <tr class="${activeClass}" data-call-id="${call.id}">
-                    <td class="action-cell">
+                    <td class="action-cell" data-call-column="force">
                         <button
                             type="button"
                             class="icon-button"
@@ -10648,43 +12373,46 @@ TEXT
                             </svg>
                         </button>
                     </td>
-                    <td class="dir-cell"><span class="dir-indicator ${directionClass}" role="img" aria-label="${directionLabel}" title="${directionLabel}"></span></td>
-                    <td class="interaction-count-cell">
+                    <td class="dir-cell" data-call-column="direction"><span class="dir-indicator ${directionClass}" role="img" aria-label="${directionLabel}" title="${directionLabel}"></span></td>
+                    <td class="interaction-count-cell" data-call-column="interactionCount">
                         ${interactionCountBadge}
                     </td>
-                    <td class="interaction-number-cell">
+                    <td class="interaction-number-cell" data-call-column="interactionNumber">
                         ${interactionNumberBadge}
                     </td>
-                    <td class="caller-cell">
+                    <td class="crm-missing-cell" data-call-column="missingInCrm">
+                        ${crmBadge}
+                    </td>
+                    <td class="caller-cell" data-call-column="caller">
                         <div class="main-text">${escapeHtml(call.caller)}</div>
                     </td>
-                    <td class="model-cell">
+                    <td class="model-cell" data-call-column="model">
                         ${renderComparisonModelBadges(call)}
                     </td>
-                    <td class="employee-cell">
+                    <td class="employee-cell" data-call-column="employee">
                         <div class="main-text">${escapeHtml(call.employee)}</div>
                         ${employeeMeta ? `<span class="sub-text">${escapeHtml(employeeMeta)}</span>` : ""}
                     </td>
-                    <td class="score-cell">${renderComparisonScoreButton(call)}</td>
-                    <td class="duration-cell">${escapeHtml(call.duration)}</td>
-                    <td class="time-cell">
+                    <td class="score-cell" data-call-column="score">${renderComparisonScoreButton(call)}</td>
+                    <td class="duration-cell" data-call-column="duration">${escapeHtml(call.duration)}</td>
+                    <td class="time-cell" data-call-column="time">
                         <span class="time-main">${escapeHtml(call.time)}</span>
                         <span class="time-sub">${escapeHtml(call.date)}</span>
                     </td>
-                    <td class="processed-cell">
+                    <td class="processed-cell" data-call-column="processed">
                         <span class="time-main">${escapeHtml(call.processedTime || "—")}</span>
                         <span class="time-sub">${escapeHtml(call.processedDate || "ще не оброблено")}</span>
                     </td>
-                    <td class="binotel-cell">
+                    <td class="binotel-cell" data-call-column="binotel">
                         <div class="main-text">${escapeHtml(binotelStatus)}</div>
                         ${localAudioBadge ? `<span class="sub-text">${localAudioBadge}</span>` : ""}
                     </td>
-                    <td class="action-cell">
+                    <td class="action-cell" data-call-column="text">
                         <button type="button" class="icon-button" data-action="transcript" aria-label="Відкрити транскрибацію" title="Транскрибація">
                             <span class="bubble-icon"></span>
                         </button>
                     </td>
-                    <td class="action-cell">
+                    <td class="action-cell" data-call-column="audio">
                         <button type="button" class="icon-button" data-action="audio" aria-label="Відкрити аудіо" title="Аудіо">
                             <span class="sound-icon"></span>
                         </button>
@@ -10693,38 +12421,44 @@ TEXT
             `;
         }).join("");
 
-        renderPagination(callsPagination, callsPage, paginationState.totalPages, rows.length, callsPerPage, "дзвінків");
-        queueVisibleCallsAudioWarmup(pageRows);
+        applyCallsTableColumnOrder(callsTableColumnOrder);
+        renderPagination(callsPagination, callsPage, Math.max(1, totalCallsPages), totalCallsCount, callsPerPage, "дзвінків");
+        queueVisibleCallsAudioWarmup(rows);
     }
 
     function renderManagersRows() {
-        const rows = buildManagersFromCalls(getRangeFilteredCalls());
-        const paginationState = paginateRows(rows, managersPage, managersPerPage);
-        const pageRows = paginationState.pageItems;
-        managersPage = paginationState.currentPage;
+        const rows = Array.isArray(managersSummaryRows) ? managersSummaryRows : [];
+        const pageRows = rows;
+        managersPage = 1;
 
         if (rows.length === 0) {
             managersTableBody.innerHTML = `
                 <tr>
                     <td colspan="4" style="text-align:center; padding: 28px 16px; color: #7c8398;">
-                        За вибраним періодом менеджерів поки не знайдено.
+                        За поточний календарний місяць менеджерів поки не знайдено.
                     </td>
                 </tr>
             `;
-            renderPagination(managersPagination, 1, 1, 0, managersPerPage, "менеджерів");
+            managersPagination.hidden = true;
+            managersPagination.innerHTML = "";
             return;
         }
 
         managersTableBody.innerHTML = pageRows.map((manager) => `
             <tr>
                 <td class="managers-name-col"><span class="main-text">${escapeHtml(manager.name)}</span></td>
-                <td class="managers-count-col">${escapeHtml(manager.callsCount)}</td>
+                <td class="managers-count-col">
+                    <div class="managers-count-stack">
+                        <div class="managers-count-main">${escapeHtml(manager.callsCount)}</div>
+                        <div class="managers-count-meta">Всього дзвінків: ${escapeHtml(manager.callsCount)}<br>Оцінено дзвінків: ${escapeHtml(manager.scoredCallsCount)}</div>
+                    </div>
+                </td>
                 <td class="managers-score-col"><span class="score-chip ${scoreClass(manager.score)} managers-score-chip">${escapeHtml(displayScore(manager.score))}</span></td>
-                <td class="managers-recommendation">${escapeHtml(manager.recommendation)}</td>
+                <td class="managers-recommendation">${escapeHtml(buildManagerRecommendation(manager.score, manager.callsCount))}</td>
             </tr>
         `).join("");
-
-        renderPagination(managersPagination, managersPage, paginationState.totalPages, rows.length, managersPerPage, "менеджерів");
+        managersPagination.hidden = true;
+        managersPagination.innerHTML = "";
     }
 
     function readStoredCallsTableColumnWidths() {
@@ -10752,12 +12486,83 @@ TEXT
         }
     }
 
+    function readStoredCallsTableColumnProfileKey() {
+        try {
+            const existing = String(localStorage.getItem(callsTableColumnProfileStorageKey) || "").trim();
+            if (existing !== "") {
+                return existing;
+            }
+
+            const created = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                ? crypto.randomUUID()
+                : `profile-${Date.now()}-${Math.random().toString(16).slice(2, 12)}`;
+            localStorage.setItem(callsTableColumnProfileStorageKey, created);
+
+            return created;
+        } catch (error) {
+            return "";
+        }
+    }
+
+    function readStoredCallsTableColumnOrder() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(callsTableColumnOrderStorageKey) || "null");
+
+            return normalizeStoredCallsTableColumnOrder(parsed);
+        } catch (error) {
+            return null;
+        }
+    }
+
     function writeStoredCallsTableColumnWidths(widths) {
         try {
             localStorage.setItem(callsTableColumnStorageKey, JSON.stringify(widths));
         } catch (error) {
             // Browser storage can be unavailable in private mode; resizing still works for this session.
         }
+    }
+
+    function writeStoredCallsTableColumnOrder(order) {
+        try {
+            localStorage.setItem(callsTableColumnOrderStorageKey, JSON.stringify(order));
+        } catch (error) {
+            // Browser storage can be unavailable in private mode; reordering still works for this session.
+        }
+    }
+
+    function normalizeStoredCallsTableColumnWidths(value) {
+        if (!value || typeof value !== "object") {
+            return null;
+        }
+
+        const widths = callsTableColumnConfig.reduce((nextWidths, column) => {
+            const width = Number(value[column.id]);
+
+            if (Number.isFinite(width)) {
+                nextWidths[column.id] = Math.max(column.minWidth, Math.min(1200, Math.round(width)));
+            }
+
+            return nextWidths;
+        }, {});
+
+        return callsTableColumnConfig.every((column) => Number.isFinite(widths[column.id]))
+            ? widths
+            : null;
+    }
+
+    function normalizeStoredCallsTableColumnOrder(value) {
+        if (!Array.isArray(value)) {
+            return null;
+        }
+
+        const allowedIds = callsTableColumnConfig.map((column) => column.id);
+        const normalized = value
+            .map((columnId) => String(columnId || "").trim())
+            .filter((columnId) => allowedIds.includes(columnId));
+
+        return normalized.length === allowedIds.length && new Set(normalized).size === allowedIds.length
+            ? normalized
+            : null;
     }
 
     function getCallsTableColumnWidths() {
@@ -10776,6 +12581,46 @@ TEXT
 
             return widths;
         }, {});
+    }
+
+    function getCallsTableColumnOrder() {
+        return [...callsTableColumnOrder];
+    }
+
+    function reorderCallsTableSectionChildren(container, order, selector) {
+        if (!container) {
+            return;
+        }
+
+        const items = new Map(
+            [...container.querySelectorAll(selector)].map((node) => [node.dataset.callColumn, node])
+        );
+
+        order.forEach((columnId) => {
+            const node = items.get(columnId);
+            if (node) {
+                container.appendChild(node);
+            }
+        });
+    }
+
+    function applyCallsTableColumnOrder(order, { persist = false } = {}) {
+        if (!callsTable) {
+            return;
+        }
+
+        const normalizedOrder = normalizeStoredCallsTableColumnOrder(order) || callsTableColumnConfig.map((column) => column.id);
+        callsTableColumnOrder = [...normalizedOrder];
+
+        reorderCallsTableSectionChildren(callsTable.querySelector("colgroup"), normalizedOrder, "col[data-call-column]");
+        reorderCallsTableSectionChildren(callsTable.querySelector("thead tr"), normalizedOrder, "th[data-call-column]");
+        callsTable.querySelectorAll("tbody tr").forEach((row) => {
+            reorderCallsTableSectionChildren(row, normalizedOrder, "td[data-call-column]");
+        });
+
+        if (persist) {
+            writeStoredCallsTableColumnOrder(normalizedOrder);
+        }
     }
 
     function applyCallsTableColumnWidths(widths, { persist = false } = {}) {
@@ -10821,13 +12666,132 @@ TEXT
         } catch (error) {
             // Ignore unavailable browser storage.
         }
+
+        scheduleCallsTableColumnPreferencesSave({
+            widths: defaultCallsTableColumnWidths(),
+            order: getCallsTableColumnOrder(),
+        });
     }
 
     function initializeCallsTableColumnWidths() {
+        const storedOrder = readStoredCallsTableColumnOrder();
+        if (storedOrder) {
+            applyCallsTableColumnOrder(storedOrder);
+        }
+
         const storedWidths = readStoredCallsTableColumnWidths();
 
         if (storedWidths && Object.keys(storedWidths).length > 0) {
             applyCallsTableColumnWidths(storedWidths);
+            return;
+        }
+
+        applyCallsTableColumnWidths(defaultCallsTableColumnWidths());
+    }
+
+    function defaultCallsTableColumnWidths() {
+        return callsTableColumnConfig.reduce((widths, column) => {
+            widths[column.id] = column.minWidth;
+
+            return widths;
+        }, {});
+    }
+
+    async function fetchCallsTableColumnWidthsFromServer() {
+        if (!callsTableColumnsPreferenceEndpoint || callsTableColumnsLoadedFromServer) {
+            return;
+        }
+
+        callsTableColumnsLoadedFromServer = true;
+        const profileKey = readStoredCallsTableColumnProfileKey();
+        const url = new URL(callsTableColumnsPreferenceEndpoint, window.location.origin);
+
+        if (profileKey !== "") {
+            url.searchParams.set("profile_key", profileKey);
+        }
+
+        try {
+            const response = await fetch(url.toString(), {
+                headers: profileKey !== "" ? { "X-UI-Profile-Key": profileKey } : {},
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const payload = await response.json();
+            const widths = normalizeStoredCallsTableColumnWidths(payload?.preferences?.widths);
+            const order = normalizeStoredCallsTableColumnOrder(payload?.preferences?.order);
+
+            if (order) {
+                applyCallsTableColumnOrder(order, { persist: true });
+            }
+
+            if (!widths) {
+                return;
+            }
+
+            applyCallsTableColumnWidths(widths, { persist: true });
+        } catch (error) {
+            // Ignore optional sync failures and keep local widths.
+        }
+    }
+
+    function scheduleCallsTableColumnPreferencesSave({ widths, order } = {}) {
+        if (!callsTableColumnsPreferenceEndpoint) {
+            return;
+        }
+
+        if (callsTableColumnSaveTimer !== null) {
+            window.clearTimeout(callsTableColumnSaveTimer);
+        }
+
+        const normalizedWidths = normalizeStoredCallsTableColumnWidths(widths || getCallsTableColumnWidths());
+        const normalizedOrder = normalizeStoredCallsTableColumnOrder(order || getCallsTableColumnOrder());
+        if (!normalizedWidths || !normalizedOrder) {
+            return;
+        }
+
+        callsTableColumnSaveTimer = window.setTimeout(() => {
+            callsTableColumnSaveTimer = null;
+            void saveCallsTableColumnPreferencesToServer({
+                widths: normalizedWidths,
+                order: normalizedOrder,
+            });
+        }, 220);
+    }
+
+    async function saveCallsTableColumnPreferencesToServer(preferences) {
+        const normalizedWidths = normalizeStoredCallsTableColumnWidths(preferences?.widths);
+        const normalizedOrder = normalizeStoredCallsTableColumnOrder(preferences?.order);
+        if (!normalizedWidths || !normalizedOrder || !callsTableColumnsPreferenceEndpoint) {
+            return;
+        }
+
+        const profileKey = readStoredCallsTableColumnProfileKey();
+
+        callsTableColumnSaveAbortController?.abort();
+        callsTableColumnSaveAbortController = new AbortController();
+
+        try {
+            await fetch(callsTableColumnsPreferenceEndpoint, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    ...(profileKey !== "" ? { "X-UI-Profile-Key": profileKey } : {}),
+                },
+                body: JSON.stringify({
+                    profile_key: profileKey || null,
+                    widths: normalizedWidths,
+                    order: normalizedOrder,
+                }),
+                signal: callsTableColumnSaveAbortController.signal,
+            });
+        } catch (error) {
+            if (error?.name !== "AbortError") {
+                // Ignore optional sync failures; local cache still preserves the choice.
+            }
         }
     }
 
@@ -10837,7 +12801,12 @@ TEXT
         }
 
         if (persist) {
-            writeStoredCallsTableColumnWidths(getCallsTableColumnWidths());
+            const widths = getCallsTableColumnWidths();
+            writeStoredCallsTableColumnWidths(widths);
+            scheduleCallsTableColumnPreferencesSave({
+                widths,
+                order: getCallsTableColumnOrder(),
+            });
         }
 
         activeColumnResize = null;
@@ -10916,18 +12885,146 @@ TEXT
         document.addEventListener("pointercancel", handleCallsTableColumnResizeCancel);
     }
 
+    function clearCallsTableColumnDropIndicators() {
+        callsTable?.querySelectorAll("th[data-call-column]").forEach((cell) => {
+            cell.classList.remove("is-column-drag-source", "is-column-drop-before", "is-column-drop-after");
+        });
+    }
+
+    function columnOrderWithMove(order, sourceColumn, targetColumn, position = "before") {
+        const normalizedOrder = normalizeStoredCallsTableColumnOrder(order) || callsTableColumnConfig.map((column) => column.id);
+        const nextOrder = normalizedOrder.filter((columnId) => columnId !== sourceColumn);
+        const targetIndex = nextOrder.indexOf(targetColumn);
+
+        if (targetIndex < 0) {
+            return normalizedOrder;
+        }
+
+        const insertIndex = position === "after" ? targetIndex + 1 : targetIndex;
+        nextOrder.splice(insertIndex, 0, sourceColumn);
+
+        return nextOrder;
+    }
+
+    function handleCallsTableColumnDragStart(event) {
+        const header = event.target.closest("th[data-call-column]");
+        if (!header || event.target.closest("[data-call-column-resizer]")) {
+            event.preventDefault();
+            return;
+        }
+
+        const columnId = String(header.dataset.callColumn || "").trim();
+        if (columnId === "") {
+            event.preventDefault();
+            return;
+        }
+
+        activeColumnDrag = {
+            column: columnId,
+            dropColumn: null,
+            dropPosition: "before",
+        };
+        header.classList.add("is-column-drag-source");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", columnId);
+    }
+
+    function handleCallsTableColumnDragOver(event) {
+        if (!activeColumnDrag || !callsTable) {
+            return;
+        }
+
+        const header = event.target.closest("th[data-call-column]");
+        if (!header) {
+            return;
+        }
+
+        const targetColumn = String(header.dataset.callColumn || "").trim();
+        if (targetColumn === "" || targetColumn === activeColumnDrag.column) {
+            return;
+        }
+
+        event.preventDefault();
+        const bounds = header.getBoundingClientRect();
+        const dropPosition = event.clientX > bounds.left + (bounds.width / 2) ? "after" : "before";
+
+        activeColumnDrag.dropColumn = targetColumn;
+        activeColumnDrag.dropPosition = dropPosition;
+
+        clearCallsTableColumnDropIndicators();
+        callsTable.querySelector(`th[data-call-column="${activeColumnDrag.column}"]`)?.classList.add("is-column-drag-source");
+        header.classList.add(dropPosition === "after" ? "is-column-drop-after" : "is-column-drop-before");
+    }
+
+    function handleCallsTableColumnDrop(event) {
+        if (!activeColumnDrag) {
+            return;
+        }
+
+        event.preventDefault();
+        const { column, dropColumn, dropPosition } = activeColumnDrag;
+        if (!dropColumn || dropColumn === column) {
+            return;
+        }
+
+        const nextOrder = columnOrderWithMove(getCallsTableColumnOrder(), column, dropColumn, dropPosition);
+        applyCallsTableColumnOrder(nextOrder, { persist: true });
+        scheduleCallsTableColumnPreferencesSave({
+            widths: getCallsTableColumnWidths(),
+            order: nextOrder,
+        });
+    }
+
+    function handleCallsTableColumnDragEnd() {
+        activeColumnDrag = null;
+        clearCallsTableColumnDropIndicators();
+    }
+
+    function initializeCallsTableColumnDragAndDrop() {
+        if (!callsTable) {
+            return;
+        }
+
+        callsTable.querySelectorAll("th[data-call-column]").forEach((header) => {
+            header.setAttribute("draggable", "true");
+        });
+    }
+
+    function setPageScrollLocked(locked) {
+        if (locked) {
+            if (document.body.classList.contains("is-page-scroll-locked")) {
+                return;
+            }
+
+            pageScrollLockY = window.scrollY || window.pageYOffset || 0;
+            document.body.classList.add("is-page-scroll-locked");
+            document.body.style.top = `-${pageScrollLockY}px`;
+            return;
+        }
+
+        if (!document.body.classList.contains("is-page-scroll-locked")) {
+            return;
+        }
+
+        document.body.classList.remove("is-page-scroll-locked");
+        document.body.style.top = "";
+        window.scrollTo(0, pageScrollLockY);
+    }
+
     function syncBodyScrollLock() {
-        document.body.style.overflow = (
+        setPageScrollLocked(
             !callModal.hidden
             || !checklistDeleteModal.hidden
             || !checklistExportModal.hidden
+            || !forceProcessChoiceModal.hidden
             || !automationScheduleModal.hidden
             || !transcriptionProviderSettingsModal.hidden
             || !transcriptionLlmScenarioModal.hidden
             || !transcriptionLlmSettingsModal.hidden
             || !transcriptionAiSettingsModal.hidden
+            || !automationCalendarBackdrop.hidden
             || document.body.classList.contains("mobile-nav-open")
-        ) ? "hidden" : "";
+        );
     }
 
     function closeMobileNav() {
@@ -11100,6 +13197,7 @@ TEXT
 
         const callId = Number(call?.id);
         const shouldRefreshAudioUrl = refresh
+            && !hasLocalAudioUrl(call)
             && Number.isFinite(callId)
             && !audioRefreshCallIds.has(callId)
             && callAudioRefreshEndpoint(callId) !== "";
@@ -12780,7 +14878,7 @@ TEXT
     }
 
     function automationQueueIsPlaying() {
-        return Boolean(automationState && automationState.paused === false);
+        return Boolean(automationState && automationState.paused === false && currentAutomationWindow().is_open);
     }
 
     function currentAutomationWindow() {
@@ -12817,6 +14915,15 @@ TEXT
                 is_day_off: item.is_day_off,
             })),
         };
+    }
+
+    function collectAutomationMinimumDurationMinutes() {
+        const fallbackValue = automationProcessingSettingsFor("evaluation")?.minimum_duration_minutes;
+
+        return normalizeAutomationMinimumDurationMinutes(
+            automationMinimumDurationSelect?.value,
+            fallbackValue,
+        );
     }
 
     function automationWindowHintState(windowState = currentAutomationWindow()) {
@@ -13631,6 +15738,7 @@ TEXT
             evaluation: {
                 ...evaluationSettings,
                 enabled: Boolean(transcriptionEvaluate?.checked),
+                minimum_duration_minutes: collectAutomationMinimumDurationMinutes(),
                 checklist_routing_rules: collectAutomationChecklistRoutingRulesFromDom(),
             },
             window: collectAutomationWindowSettingsFromForm(),
@@ -13694,6 +15802,18 @@ TEXT
 
                 if (payload.automation && typeof payload.automation === "object") {
                     applyAutomationStatePayload(payload.automation);
+                }
+
+                automationCalendarServerStats = null;
+                automationCalendarStatsCache = null;
+                clearStoredAutomationCalendarStats();
+
+                if (automationCalendarPopover && !automationCalendarPopover.hidden) {
+                    await refreshAutomationCalendarStats({
+                        force: true,
+                        focusDate: automationCalendarSelectedDate,
+                    });
+                    renderAutomationCalendar();
                 }
 
                 if (announce) {
@@ -13774,6 +15894,12 @@ TEXT
             transcriptionEvaluate.checked = evaluationSettings && Object.prototype.hasOwnProperty.call(evaluationSettings, "enabled")
                 ? normalizeTranscriptionAiBoolean(evaluationSettings.enabled, true)
                 : true;
+        }
+
+        if (automationMinimumDurationSelect && !hasPendingAutomationSettingsSync()) {
+            automationMinimumDurationSelect.value = String(
+                normalizeAutomationMinimumDurationMinutes(evaluationSettings?.minimum_duration_minutes, 0),
+            );
         }
 
         if (!hasAutomationChecklistRoutingRefreshLock()) {
@@ -15049,7 +17175,7 @@ TEXT
         };
         syncTranscriptionProviderSettingsForm();
         transcriptionProviderSettingsModal.hidden = false;
-        document.body.style.overflow = "hidden";
+        syncBodyScrollLock();
         loadTranscriptionProviderModels(transcriptionProviderSettingsDraft.provider, {
             preferredModel: transcriptionProviderSettingsDraft.model,
         });
@@ -15062,7 +17188,7 @@ TEXT
 
         transcriptionProviderSettingsModal.hidden = true;
         transcriptionProviderSettingsDraft = null;
-        document.body.style.overflow = "";
+        syncBodyScrollLock();
     }
 
     function syncSettingsFormFromState() {
@@ -15182,13 +17308,18 @@ TEXT
     }
 
     function applyBootstrapPayload(payload) {
+        const previousCallsVersion = callsVersion;
+        const nextCallsIncluded = payload?.callsIncluded !== false;
         const nextCalls = Array.isArray(payload?.calls) ? payload.calls : [];
+        const nextCallsVersion = typeof payload?.callsVersion === "string"
+            ? payload.callsVersion.trim()
+            : "";
         const nextChecklists = Array.isArray(payload?.checklists) ? payload.checklists : [];
         const nextDefaultChecklistId = typeof payload?.defaultChecklistId === "string" && payload.defaultChecklistId !== ""
             ? payload.defaultChecklistId
             : (nextChecklists[0]?.id || null);
         const nextTranscriptionSettings = payload?.transcriptionSettings && typeof payload.transcriptionSettings === "object"
-            ? payload.transcriptionSettings
+            ? resolvePreferredTranscriptionSettings(payload.transcriptionSettings)
             : {};
         const nextActiveEvaluationJob = payload?.activeEvaluationJob && typeof payload.activeEvaluationJob === "object"
             ? payload.activeEvaluationJob
@@ -15198,10 +17329,20 @@ TEXT
             : null;
 
         const checklistRefreshLocked = hasChecklistRefreshLock();
+        const settingsRefreshLocked = hasServerSettingsRefreshLock();
+        const callsVersionChanged = nextCallsVersion !== "" && nextCallsVersion !== previousCallsVersion;
 
-        calls = isInteractionHistoryMode
-            ? filterInteractionHistoryRequestCalls(interactionHistoryRequest, nextCalls)
-            : nextCalls;
+        if (nextCallsIncluded) {
+            calls = nextCalls;
+            totalCallsCount = nextCalls.length;
+            totalCallsPages = nextCalls.length > 0 ? 1 : 0;
+            callsEmployees = [...new Set(nextCalls.map((call) => call.employee).filter((value) => String(value || "").trim() !== ""))];
+        }
+
+        if (nextCallsVersion !== "") {
+            callsVersion = nextCallsVersion;
+        }
+
         if (!checklistRefreshLocked) {
             checklists = nextChecklists;
         }
@@ -15213,9 +17354,12 @@ TEXT
             transcriptionServerUploadLimitBytes = nextUploadLimit;
         }
 
-        replaceObjectContents(transcriptionSettings, nextTranscriptionSettings);
-        if (Array.isArray(nextTranscriptionSettings?.transcription_provider_available_models)) {
-            transcriptionProviderModelsCache[nextTranscriptionSettings.transcription_provider || "faster_whisper"] = nextTranscriptionSettings.transcription_provider_available_models;
+        if (!settingsRefreshLocked) {
+            replaceObjectContents(transcriptionSettings, nextTranscriptionSettings);
+            if (Array.isArray(nextTranscriptionSettings?.transcription_provider_available_models)) {
+                transcriptionProviderModelsCache[nextTranscriptionSettings.transcription_provider || "faster_whisper"] = nextTranscriptionSettings.transcription_provider_available_models;
+            }
+            writeStoredSavedTranscriptionSettings(nextTranscriptionSettings);
         }
         if (nextAutomationState) {
             applyAutomationStatePayload(nextAutomationState);
@@ -15226,7 +17370,9 @@ TEXT
         renderAutomationCalendar();
         renderRows();
         renderManagersRows();
-        reopenActiveCallModal();
+        if (activeModalKind !== "audio") {
+            reopenActiveCallModal();
+        }
 
         if (checklistRefreshLocked) {
             if (!activeChecklistRenameId) {
@@ -15251,7 +17397,7 @@ TEXT
             }
         }
 
-        if (!isSettingsDirty) {
+        if (!settingsRefreshLocked) {
             syncSettingsFormFromState();
         }
 
@@ -15259,11 +17405,28 @@ TEXT
         if (isEvaluationJobActive(nextActiveEvaluationJob)) {
             resumeActiveEvaluationJob(nextActiveEvaluationJob);
         }
+
+        if (callsVersionChanged) {
+            if (currentSectionId() === "callsSection") {
+                scheduleCallsListingRefresh({ force: true, immediate: true });
+            } else if (currentSectionId() === "managersSection") {
+                refreshManagersSummary({ force: true });
+            }
+        }
+
         lastBootstrapSyncAt = Date.now();
     }
 
     async function refreshPageBootstrap({ force = false } = {}) {
         if (!pageBootstrapEndpoint || isBootstrapRefreshing) {
+            return;
+        }
+
+        if (!force && !shouldKeepPageBootstrapHot()) {
+            return;
+        }
+
+        if (!force && document.visibilityState !== "visible") {
             return;
         }
 
@@ -15274,7 +17437,12 @@ TEXT
         isBootstrapRefreshing = true;
 
         try {
-            const response = await fetch(pageBootstrapEndpoint, {
+            const url = new URL(pageBootstrapEndpoint, window.location.origin);
+            if (callsVersion !== "") {
+                url.searchParams.set("calls_version", callsVersion);
+            }
+
+            const response = await fetch(url.toString(), {
                 headers: {
                     Accept: "application/json"
                 },
@@ -15415,8 +17583,11 @@ TEXT
             transcriptionSettings.llm_num_predict = payload.settings?.llm_num_predict ?? Number(selectedLlmNumPredict);
             transcriptionSettings.llm_timeout_seconds = payload.settings?.llm_timeout_seconds ?? Number(selectedLlmTimeoutSeconds);
             transcriptionSettings.llm_thinking_enabled = false;
+            transcriptionSettings.updated_at = payload.settings?.updated_at || new Date().toISOString();
             pendingApiKeyDeletes = {};
             isSettingsDirty = false;
+            clearStoredSettingsDraft();
+            writeStoredSavedTranscriptionSettings(transcriptionSettings);
             syncSettingsFormFromState();
             refreshAllSettingsProviderModels(transcriptionSettings.llm_provider || selectedProvider);
             scheduleAutomationProcessingSettingsSync();
@@ -16434,13 +18605,13 @@ TEXT
         employeeFilterValue = event.target.value;
         callsPage = 1;
         syncEmployeeFilterDropdown();
-        renderRows();
+        scheduleCallsListingRefresh({ force: true, immediate: true });
     });
 
     phoneSearch.addEventListener("input", (event) => {
         phoneSearchValue = event.target.value;
         callsPage = 1;
-        renderRows();
+        scheduleCallsListingRefresh({ force: true });
     });
 
     transcriptionFileInput?.addEventListener("change", () => {
@@ -16799,11 +18970,28 @@ TEXT
         persistAutomationChecklistRoutingChanges();
     });
 
-    automationCalendarLauncher?.addEventListener("click", () => {
-        toggleAutomationCalendar();
+    automationCalendarLauncher?.addEventListener("click", async () => {
+        await toggleAutomationCalendar();
+    });
+
+    automationCalendarAnchor?.addEventListener("click", async (event) => {
+        if (
+            event.target.closest("#automationCalendarLauncher")
+            || event.target.closest("#automationCalendarPopover")
+            || event.target.closest("#automationCalendarDayPopover")
+            || event.target.closest("#automationCalendarBackdrop")
+        ) {
+            return;
+        }
+
+        await toggleAutomationCalendar();
     });
 
     automationCalendarCloseButton?.addEventListener("click", () => {
+        closeAutomationCalendar();
+    });
+
+    automationCalendarBackdrop?.addEventListener("click", () => {
         closeAutomationCalendar();
     });
 
@@ -16813,25 +19001,53 @@ TEXT
         renderAutomationCalendar();
     });
 
-    automationCalendarPrev?.addEventListener("click", () => {
+    automationCalendarPrev?.addEventListener("click", async () => {
+        const sessionId = automationCalendarSessionId;
         automationCalendarViewDate = new Date(
             (automationCalendarViewDate || new Date()).getFullYear(),
             (automationCalendarViewDate || new Date()).getMonth() - 1,
             1,
         );
+        await refreshAutomationCalendarStats({
+            force: true,
+            focusDate: automationCalendarSelectedDate,
+        });
+
+        if (
+            sessionId !== automationCalendarSessionId
+            || !automationCalendarPopover
+            || automationCalendarPopover.hidden
+        ) {
+            return;
+        }
+
         renderAutomationCalendar();
     });
 
-    automationCalendarNext?.addEventListener("click", () => {
+    automationCalendarNext?.addEventListener("click", async () => {
+        const sessionId = automationCalendarSessionId;
         automationCalendarViewDate = new Date(
             (automationCalendarViewDate || new Date()).getFullYear(),
             (automationCalendarViewDate || new Date()).getMonth() + 1,
             1,
         );
+        await refreshAutomationCalendarStats({
+            force: true,
+            focusDate: automationCalendarSelectedDate,
+        });
+
+        if (
+            sessionId !== automationCalendarSessionId
+            || !automationCalendarPopover
+            || automationCalendarPopover.hidden
+        ) {
+            return;
+        }
+
         renderAutomationCalendar();
     });
 
-    automationCalendarGrid?.addEventListener("click", (event) => {
+    automationCalendarGrid?.addEventListener("click", async (event) => {
         const dayButton = event.target.closest("[data-automation-calendar-date]");
         if (!dayButton) {
             return;
@@ -16839,7 +19055,7 @@ TEXT
 
         event.preventDefault();
         event.stopPropagation();
-        openAutomationCalendarDate(dayButton.dataset.automationCalendarDate || "");
+        await openAutomationCalendarDate(dayButton.dataset.automationCalendarDate || "");
     });
 
     transcriptionEvaluate?.addEventListener("change", () => {
@@ -16903,6 +19119,11 @@ TEXT
 
     automationWindowEndInput?.addEventListener("change", () => {
         updateAutomationWindowFromControls();
+    });
+
+    automationMinimumDurationSelect?.addEventListener("change", () => {
+        scheduleAutomationProcessingSettingsSync();
+        setTranscriptionFeedback("Фільтр за тривалістю спілкування оновлено.", "");
     });
 
     transcriptionProviderSettingsProvider?.addEventListener("change", () => {
@@ -17234,26 +19455,18 @@ TEXT
     });
 
     dateCancel.addEventListener("click", () => {
+        draftRangeStart = rangeStart ? new Date(rangeStart) : null;
+        draftRangeEnd = rangeEnd ? new Date(rangeEnd) : null;
         closeDatePicker();
     });
 
     dateApply.addEventListener("click", () => {
         if (!draftRangeStart && !draftRangeEnd) {
-            rangeStart = null;
-            rangeEnd = null;
-            hasCustomDateRange = false;
+            applyDateFilter(null, null);
         } else {
             const safeEnd = draftRangeEnd || draftRangeStart;
-            rangeStart = normalizeDate(draftRangeStart);
-            rangeEnd = normalizeDate(safeEnd);
-            hasCustomDateRange = true;
+            applyDateFilter(draftRangeStart, safeEnd);
         }
-
-        closeDatePicker();
-        callsPage = 1;
-        managersPage = 1;
-        renderRows();
-        renderManagersRows();
     });
 
     [interactionCountSort, interactionNumberSort, modelSort, durationSort, timeSort, processedSort, scoreSort].forEach((button) => {
@@ -17268,7 +19481,7 @@ TEXT
             }
 
             callsPage = 1;
-            renderRows();
+            scheduleCallsListingRefresh({ force: true, immediate: true });
         });
     });
 
@@ -17279,10 +19492,10 @@ TEXT
         }
 
         callsPage = Number(button.dataset.page);
-        renderRows();
+        scheduleCallsListingRefresh({ force: true, immediate: true });
     });
 
-    managersPagination.addEventListener("click", (event) => {
+    managersPagination?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-page]");
         if (!button || button.disabled) {
             return;
@@ -17293,6 +19506,18 @@ TEXT
     });
 
     callsTable?.addEventListener("pointerdown", startCallsTableColumnResize);
+    callsTable?.addEventListener("dragstart", handleCallsTableColumnDragStart);
+    callsTable?.addEventListener("dragover", handleCallsTableColumnDragOver);
+    callsTable?.addEventListener("drop", handleCallsTableColumnDrop);
+    callsTable?.addEventListener("dragend", handleCallsTableColumnDragEnd);
+    callsTable?.addEventListener("dragleave", (event) => {
+        const header = event.target.closest("th[data-call-column]");
+        if (!header || !activeColumnDrag) {
+            return;
+        }
+
+        header.classList.remove("is-column-drop-before", "is-column-drop-after");
+    });
     callsTable?.addEventListener("dblclick", (event) => {
         if (!event.target.closest("[data-call-column-resizer]")) {
             return;
@@ -17517,12 +19742,14 @@ TEXT
         }
     });
 
-    if (!isInteractionHistoryMode) {
-        initializeCallsTableColumnWidths();
-    }
     rebuildInteractionCountIndex();
     syncCallsState({ preserveCustomRange: false });
     applyInteractionHistoryMode();
+    applyAutomationMetricFilterMode();
+    applyAutomationRowFilterMode();
+    initializeCallsTableColumnDragAndDrop();
+    initializeCallsTableColumnWidths();
+    void fetchCallsTableColumnWidthsFromServer();
 
     renderFilterOptions();
     renderDateRangeSummary();
@@ -17545,6 +19772,7 @@ TEXT
         writeStoredChecklistSelectionId("");
     }
     syncSettingsFormFromState();
+    applySettingsDraftSnapshot(readStoredSettingsDraft());
     refreshAllSettingsProviderModels(transcriptionSettings?.llm_provider || settingsProvider?.value || "ollama");
     syncTranscriptionFileName();
     syncTranscriptionChecklistState();
@@ -17577,14 +19805,22 @@ TEXT
 
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
-            refreshPageBootstrap();
+            if (currentSectionId() === "callsSection") {
+                refreshPageBootstrap();
+            } else if (currentSectionId() === "managersSection") {
+                refreshPageBootstrap();
+            }
             refreshAutomationState({ force: true });
         }
     });
 
     window.addEventListener("focus", () => {
         if (document.visibilityState === "visible") {
-            refreshPageBootstrap();
+            if (currentSectionId() === "callsSection") {
+                refreshPageBootstrap();
+            } else if (currentSectionId() === "managersSection") {
+                refreshPageBootstrap();
+            }
             refreshAutomationState({ force: true });
         }
     });
@@ -17595,7 +19831,11 @@ TEXT
 
     window.addEventListener("pageshow", (event) => {
         if (event.persisted) {
-            refreshPageBootstrap({ force: true });
+            if (currentSectionId() === "callsSection") {
+                refreshPageBootstrap({ force: true });
+            } else if (currentSectionId() === "managersSection") {
+                refreshPageBootstrap({ force: true });
+            }
             refreshAutomationState({ force: true });
         }
     });

@@ -39,6 +39,8 @@ class AltCallCenterAutoProcessor
         private readonly BinotelCallFeedbackStore $feedbackStore,
         private readonly BinotelCallRecordUrlResolver $recordUrlResolver,
         private readonly BinotelCallAudioCacheService $audioCacheService,
+        private readonly CallCenterCrmPhoneLookupService $crmPhoneLookupService,
+        private readonly CallCenterCrmCallStatusStore $crmCallStatusStore,
     ) {
     }
 
@@ -83,6 +85,109 @@ class AltCallCenterAutoProcessor
         return $this->processCall($call, $forcedGeneralCallId !== null && trim($forcedGeneralCallId) !== '');
     }
 
+    /**
+     * @return array{eligible:bool,message:string,code?:string}
+     */
+    public function validateForcedCall(BinotelApiCallCompleted $call, bool $allowContinueWithoutCrm = false): array
+    {
+        $generalCallId = trim((string) $call->call_details_general_call_id);
+
+        if ($generalCallId === '') {
+            return [
+                'eligible' => false,
+                'message' => 'У цього дзвінка немає General Call ID, тому примусова обробка недоступна.',
+            ];
+        }
+
+        if (trim((string) ($call->request_type ?? '')) !== 'apiCallCompleted') {
+            return [
+                'eligible' => false,
+                'message' => 'Цей запис не належить до завершених дзвінків Binotel, тому його не можна примусово обробити.',
+            ];
+        }
+
+        if (trim((string) ($call->call_details_disposition ?? '')) !== 'ANSWER' || (int) ($call->call_details_billsec ?? 0) <= 0) {
+            return [
+                'eligible' => false,
+                'message' => 'Цей дзвінок має статус недозвону або нульову тривалість розмови, тому він не підлягає обробці.',
+            ];
+        }
+
+        if (! $this->meetsMinimumDuration($call)) {
+            return [
+                'eligible' => false,
+                'message' => 'Тривалість цього дзвінка менша за встановлений поріг '
+                    .$this->minimumDurationMinutes()
+                    .' хв, тому примусова обробка для нього недоступна.',
+            ];
+        }
+
+        $interactionNumber = (int) ($call->interaction_number ?? 0);
+        if ($interactionNumber < 1 || $interactionNumber > 20) {
+            return [
+                'eligible' => false,
+                'message' => 'Для цього дзвінка не визначено коректний номер взаємодії, тому його не можна обробити за поточними правилами.',
+            ];
+        }
+
+        if ($this->automationEvaluationEnabled() && $this->matchesConfiguredRoutingRule($call) === false) {
+            return [
+                'eligible' => false,
+                'message' => 'Цей дзвінок не підпадає під жодне активне правило автопривʼязки чек-листів, тому примусова обробка для нього недоступна.',
+            ];
+        }
+
+        $phone = $this->crmPhoneLookupService->normalizePhone(
+            (string) ($call->call_details_external_number ?? $call->call_details_customer_from_outside_external_number ?? '')
+        );
+
+        if ($phone !== '') {
+            try {
+                $lookup = $this->lookupCrmForCall($call, $phone);
+                if (is_array($lookup)) {
+                    $this->crmCallStatusStore->storeLookupForCall($call, $lookup);
+                }
+            } catch (Throwable $exception) {
+                $this->crmCallStatusStore->storeLookupErrorForCall($call, $exception->getMessage());
+
+                if ($allowContinueWithoutCrm) {
+                    return [
+                        'eligible' => true,
+                        'message' => 'CRM не відповіла, але примусову обробку дозволено продовжити вручну.',
+                    ];
+                }
+
+                return [
+                    'eligible' => false,
+                    'message' => 'CRM не відповіла під час перевірки номера '.$phone.'. Продовжити обробку без відповіді CRM?',
+                    'code' => 'crm_unavailable_confirmation_required',
+                ];
+            }
+
+            if (is_array($lookup) && $this->shouldSkipBecauseCrmResultMatches($lookup)) {
+                $manager = trim((string) ($lookup['manager'] ?? ''));
+                $crmCase = trim((string) ($lookup['case'] ?? ''));
+                $reason = ($lookup['phone_exist'] ?? false)
+                    ? ($manager !== ''
+                        ? 'Для номера '.$phone.' вже знайдено лід у CRM за менеджером '.$manager.', тому цей дзвінок не можна примусово обробити.'
+                        : 'Для номера '.$phone.' вже знайдено лід у CRM, тому цей дзвінок не можна примусово обробити.')
+                    : ($crmCase !== ''
+                        ? 'Для номера '.$phone.' CRM повернула статус '.$crmCase.', тому цей дзвінок не можна примусово обробити.'
+                        : 'CRM позначила номер '.$phone.' як такий, що не підлягає обробці, тому цей дзвінок не можна примусово обробити.');
+
+                return [
+                    'eligible' => false,
+                    'message' => $reason,
+                ];
+            }
+        }
+
+        return [
+            'eligible' => true,
+            'message' => 'Дзвінок відповідає поточним правилам і може бути примусово оброблений.',
+        ];
+    }
+
     private function processCall(BinotelApiCallCompleted $call, bool $allowRepeat = false): bool
     {
         $generalCallId = trim((string) $call->call_details_general_call_id);
@@ -94,6 +199,10 @@ class AltCallCenterAutoProcessor
                 $this->automationStore->clearRetry($generalCallId);
                 $this->markCall($call, 'completed');
 
+                return true;
+            }
+
+            if ($this->shouldSkipBecausePhoneExistsInCrm($call, $generalCallId)) {
                 return true;
             }
 
@@ -423,6 +532,7 @@ class AltCallCenterAutoProcessor
     {
         $supportsLocalAudioCache = Schema::hasColumn('binotel_api_call_completeds', 'local_audio_relative_path');
         $scheduledRetry = $this->scheduledRetryState();
+        $minimumBillsec = $this->minimumDurationMinutes() * 60;
         $query = BinotelApiCallCompleted::query()
             ->with('feedback')
             ->where('request_type', 'apiCallCompleted')
@@ -506,6 +616,10 @@ class AltCallCenterAutoProcessor
                     ->orWhereNotNull('evaluation_score')
                     ->orWhereNotNull('evaluated_at');
             });
+
+        if ($minimumBillsec > 0) {
+            $query->where('call_details_billsec', '>=', $minimumBillsec);
+        }
 
         if ($scheduledRetry !== null) {
             $query->where('call_details_general_call_id', '<>', (string) $scheduledRetry['general_call_id']);
@@ -618,6 +732,12 @@ class AltCallCenterAutoProcessor
         $call = $this->callByGeneralCallId($generalCallId);
 
         if ($call === null) {
+            $this->automationStore->clearRetry($generalCallId);
+
+            return null;
+        }
+
+        if (! $this->meetsMinimumDuration($call)) {
             $this->automationStore->clearRetry($generalCallId);
 
             return null;
@@ -1105,6 +1225,45 @@ class AltCallCenterAutoProcessor
         return '';
     }
 
+    private function matchesConfiguredRoutingRule(BinotelApiCallCompleted $call): bool
+    {
+        $interactionNumber = max(1, min(20, (int) ($call->interaction_number ?? 1)));
+        $direction = $this->direction($call);
+
+        foreach ($this->configuredChecklistRoutingRules() as $rule) {
+            if ((int) ($rule['interaction_number'] ?? 0) !== $interactionNumber) {
+                continue;
+            }
+
+            $ruleDirection = trim((string) ($rule['direction'] ?? 'any'));
+            if ($ruleDirection !== 'any' && $ruleDirection !== $direction) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private function minimumDurationMinutes(): int
+    {
+        $evaluationSettings = $this->automationStore->processingSettings()['evaluation'];
+
+        return max(0, min(10, (int) ($evaluationSettings['minimum_duration_minutes'] ?? 0)));
+    }
+
+    private function meetsMinimumDuration(BinotelApiCallCompleted $call): bool
+    {
+        $minimumDurationMinutes = $this->minimumDurationMinutes();
+
+        if ($minimumDurationMinutes <= 0) {
+            return true;
+        }
+
+        return (int) ($call->call_details_billsec ?? 0) >= ($minimumDurationMinutes * 60);
+    }
+
     /**
      * @param  array<string, mixed>|null  $evaluationSettings
      * @return array<int, array{checklist_id:string,interaction_number:int,direction:string}>
@@ -1173,6 +1332,96 @@ class AltCallCenterAutoProcessor
         }
 
         return 'Нових дзвінків з готовим записом поки немає. Черга очікує.';
+    }
+
+    private function shouldSkipBecausePhoneExistsInCrm(BinotelApiCallCompleted $call, string $generalCallId): bool
+    {
+        $phone = $this->crmPhoneLookupService->normalizePhone(
+            (string) ($call->call_details_external_number ?? $call->call_details_customer_from_outside_external_number ?? '')
+        );
+
+        if ($phone === '') {
+            return false;
+        }
+
+        try {
+            $lookup = $this->lookupCrmForCall($call, $phone);
+            if (is_array($lookup)) {
+                $this->crmCallStatusStore->storeLookupForCall($call, $lookup);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->crmCallStatusStore->storeLookupErrorForCall($call, $exception->getMessage());
+
+            $this->automationStore->markMessage(
+                'Не вдалося перевірити номер '.$phone.' у CRM. Черга не зупиняється, тому продовжуємо стандартну обробку дзвінка'
+                    .($generalCallId !== '' ? ' '.$generalCallId : '')
+                    .'.',
+                'running',
+                'transcription',
+            );
+
+            return false;
+        }
+
+        if (! is_array($lookup) || ! $this->shouldSkipBecauseCrmResultMatches($lookup)) {
+            return false;
+        }
+
+        $manager = trim((string) ($lookup['manager'] ?? ''));
+        $crmCase = trim((string) ($lookup['case'] ?? ''));
+        $message = ($lookup['phone_exist'] ?? false)
+            ? ($manager !== ''
+                ? 'У CRM вже є лід по номеру '.$phone.' (менеджер: '.$manager.'). Пропускаємо дзвінок без транскрибації та оцінювання.'
+                : 'У CRM вже є лід по номеру '.$phone.'. Пропускаємо дзвінок без транскрибації та оцінювання.')
+            : ($crmCase !== ''
+                ? 'CRM повернула для номера '.$phone.' статус '.$crmCase.'. Пропускаємо дзвінок без транскрибації та оцінювання.'
+                : 'CRM позначила номер '.$phone.' як такий, що не підлягає обробці. Пропускаємо дзвінок без транскрибації та оцінювання.');
+
+        $this->automationStore->clearRetry($generalCallId);
+        $this->markCall($call, 'completed', $message);
+        $this->automationStore->clearCurrentCall();
+        $logMessage = ($lookup['phone_exist'] ?? false)
+            ? 'Дзвінок '.($generalCallId !== '' ? $generalCallId.' ' : '').'пропущено, бо номер '.$phone.' уже знайдено в CRM'.($manager !== '' ? ' за менеджером '.$manager : '').'.'
+            : 'Дзвінок '.($generalCallId !== '' ? $generalCallId.' ' : '').'пропущено, бо CRM повернула для номера '.$phone.' статус '.($crmCase !== '' ? $crmCase : 'skip').'.';
+        $this->automationStore->markMessage(
+            $logMessage,
+            'running',
+            'completed',
+        );
+
+        return true;
+    }
+
+    /**
+     * For already-created leads the CRM endpoint can miss records when queried only
+     * for the exact day, so we reuse the lookup service fallback logic bound to the
+     * call date whenever Binotel gives us a timestamp.
+     */
+    private function lookupCrmForCall(BinotelApiCallCompleted $call, string $phone): ?array
+    {
+        $startedAt = (int) ($call->call_details_start_time ?? 0);
+        $timezone = (string) config('binotel.timezone', 'Europe/Kyiv');
+
+        if ($startedAt > 0) {
+            $day = CarbonImmutable::createFromTimestamp($startedAt, $timezone)->startOfDay();
+
+            return $this->crmPhoneLookupService->lookupForDay($phone, $day);
+        }
+
+        return $this->crmPhoneLookupService->lookup($phone);
+    }
+
+    /**
+     * @param  array<string, mixed>  $lookup
+     */
+    private function shouldSkipBecauseCrmResultMatches(array $lookup): bool
+    {
+        if ((bool) ($lookup['phone_exist'] ?? false)) {
+            return true;
+        }
+
+        return mb_strtolower(trim((string) ($lookup['case'] ?? ''))) === 'low-quality lead';
     }
 
     /**

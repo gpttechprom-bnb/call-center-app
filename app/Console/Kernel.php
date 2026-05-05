@@ -37,6 +37,11 @@ class Kernel extends ConsoleKernel
             ->everyMinute()
             ->when(fn () => ! app(AltCallCenterAutomationWindow::class)->isOpen())
             ->withoutOverlapping();
+
+        $schedule
+            ->command('call-center:warm-alt-calendar-crm-cache')
+            ->dailyAt('17:15')
+            ->withoutOverlapping();
     }
 
     /**

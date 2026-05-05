@@ -3,10 +3,13 @@
 use App\Http\Controllers\Api\AltCallCenterChecklistController;
 use App\Http\Controllers\Api\AltCallCenterAutomationController;
 use App\Http\Controllers\Api\AltCallCenterBootstrapController;
+use App\Http\Controllers\Api\AltCallCenterCallsController;
 use App\Http\Controllers\Api\AltCallCenterEvaluationController;
+use App\Http\Controllers\Api\AltCallCenterManagersSummaryController;
 use App\Http\Controllers\Api\AltCallCenterSettingsController;
 use App\Http\Controllers\Api\AltCallCenterTranscriptionController;
 use App\Http\Controllers\Api\AltCallCenterTranscriptionAiRewriteController;
+use App\Http\Controllers\Api\AltCallCenterUiPreferenceController;
 use App\Http\Controllers\Api\AltCallCenterTranscriptionTaskController;
 use App\Http\Controllers\Api\BinotelFeedbackController;
 use App\Http\Controllers\Api\BinotelWebhookController;
@@ -68,9 +71,11 @@ Route::get('/call-center/bootstrap', CallCenterBootstrapController::class)
     ->name('api.call-center.bootstrap');
 
 Route::get('/call-center/calls/{call}/audio-url', CallCenterCallAudioUrlController::class)
+    ->withoutMiddleware('throttle:api')
     ->name('api.call-center.calls.audio-url');
 
 Route::get('/call-center/calls/{call}/audio-file', CallCenterCallAudioFileController::class)
+    ->withoutMiddleware('throttle:api')
     ->name('api.call-center.calls.audio-file');
 
 Route::get('/call-center/checklists', [CallCenterChecklistController::class, 'index'])
@@ -119,8 +124,17 @@ Route::prefix('/alt/call-center')->name('api.alt.call-center.')->group(function 
     Route::get('/bootstrap', AltCallCenterBootstrapController::class)
         ->name('bootstrap');
 
+    Route::get('/calls', AltCallCenterCallsController::class)
+        ->name('calls.index');
+
+    Route::get('/managers/summary', AltCallCenterManagersSummaryController::class)
+        ->name('managers.summary');
+
     Route::get('/automation', [AltCallCenterAutomationController::class, 'show'])
         ->name('automation.show');
+
+    Route::get('/automation/calendar-stats', [AltCallCenterAutomationController::class, 'calendarStats'])
+        ->name('automation.calendar-stats');
 
     Route::post('/automation/play', [AltCallCenterAutomationController::class, 'play'])
         ->name('automation.play');
@@ -138,9 +152,11 @@ Route::prefix('/alt/call-center')->name('api.alt.call-center.')->group(function 
         ->name('calls.force-process');
 
     Route::get('/calls/{call}/audio-url', CallCenterCallAudioUrlController::class)
+        ->withoutMiddleware('throttle:api')
         ->name('calls.audio-url');
 
     Route::get('/calls/{call}/audio-file', CallCenterCallAudioFileController::class)
+        ->withoutMiddleware('throttle:api')
         ->name('calls.audio-file');
 
     Route::get('/checklists', [AltCallCenterChecklistController::class, 'index'])
@@ -163,4 +179,10 @@ Route::prefix('/alt/call-center')->name('api.alt.call-center.')->group(function 
 
     Route::put('/settings', [AltCallCenterSettingsController::class, 'update'])
         ->name('settings.update');
+
+    Route::get('/ui-preferences/calls-table-columns', [AltCallCenterUiPreferenceController::class, 'show'])
+        ->name('ui-preferences.calls-table-columns.show');
+
+    Route::put('/ui-preferences/calls-table-columns', [AltCallCenterUiPreferenceController::class, 'update'])
+        ->name('ui-preferences.calls-table-columns.update');
 });

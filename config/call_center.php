@@ -17,6 +17,9 @@ return [
         'night_start_hour' => (int) env('CALL_CENTER_AUTOMATION_NIGHT_START_HOUR', 20),
         'night_end_hour' => (int) env('CALL_CENTER_AUTOMATION_NIGHT_END_HOUR', 6),
     ],
+    'crm' => [
+        'phone_lookup_url' => env('CALL_CENTER_CRM_PHONE_LOOKUP_URL', 'https://yaprofi.ua/api/call_center_get_phone_data'),
+    ],
     'transcription' => [
         'max_upload_kb' => (int) env('CALL_CENTER_TRANSCRIPTION_MAX_UPLOAD_KB', 102400),
         'settings_path' => env('CALL_CENTER_TRANSCRIPTION_SETTINGS_PATH', 'call-center/settings.json'),

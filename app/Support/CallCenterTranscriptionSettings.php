@@ -618,7 +618,8 @@ class CallCenterTranscriptionSettings
      *     llm_num_predict: int,
      *     llm_timeout_seconds: int,
      *     llm_thinking_enabled: bool,
-     *     llm_background_timeout_seconds: int
+     *     llm_background_timeout_seconds: int,
+     *     updated_at: string|null
      * }
      */
     public function payload(): array
@@ -651,6 +652,9 @@ class CallCenterTranscriptionSettings
             'llm_timeout_seconds' => $this->llmTimeoutSeconds(),
             'llm_background_timeout_seconds' => $this->llmBackgroundTimeoutSeconds(),
             'llm_thinking_enabled' => $this->llmThinkingEnabled(),
+            'updated_at' => is_string($this->read()['updated_at'] ?? null)
+                ? trim((string) $this->read()['updated_at'])
+                : null,
         ];
     }
 

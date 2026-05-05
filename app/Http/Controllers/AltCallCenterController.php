@@ -34,10 +34,14 @@ class AltCallCenterController extends Controller
                 'transcriptionAiRewriteEndpoint' => url('/api/alt/call-center/transcriptions/ai-rewrite'),
                 'transcriptionEvaluationEndpoint' => url('/api/alt/call-center/evaluations'),
                 'transcriptionSettingsEndpoint' => url('/api/alt/call-center/settings'),
+                'callsTableColumnsPreferenceEndpoint' => url('/api/alt/call-center/ui-preferences/calls-table-columns'),
+                'callsListingEndpoint' => url('/api/alt/call-center/calls'),
+                'managersSummaryEndpoint' => url('/api/alt/call-center/managers/summary'),
                 'pageBootstrapEndpoint' => url('/api/alt/call-center/bootstrap'),
                 'callAudioEndpoint' => url('/api/alt/call-center/calls/__CALL_ID__/audio-url'),
                 'callForceProcessEndpoint' => url('/api/alt/call-center/calls/__CALL_ID__/force-process'),
                 'automationEndpoint' => url('/api/alt/call-center/automation'),
+                'automationCalendarStatsEndpoint' => url('/api/alt/call-center/automation/calendar-stats'),
                 'automationPlayEndpoint' => url('/api/alt/call-center/automation/play'),
                 'automationPauseEndpoint' => url('/api/alt/call-center/automation/pause'),
                 'automationSettingsEndpoint' => url('/api/alt/call-center/automation/settings'),
@@ -49,7 +53,9 @@ class AltCallCenterController extends Controller
                     trim((string) config('binotel.feedback.api_key', ''))
                 ),
                 'binotelFeedbackApiKeyConfigured' => trim((string) config('binotel.feedback.api_key', '')) !== '',
-            ]
+            ],
+            null,
+            false,
         ), 200, [
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',

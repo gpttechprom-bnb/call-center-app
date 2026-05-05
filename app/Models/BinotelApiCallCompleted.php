@@ -31,6 +31,9 @@ class BinotelApiCallCompleted extends Model
             'local_audio_expires_at' => 'datetime',
             'alt_auto_started_at' => 'datetime',
             'alt_auto_finished_at' => 'datetime',
+            'crm_phone_exists' => 'boolean',
+            'crm_missing' => 'boolean',
+            'crm_checked_at' => 'datetime',
         ];
     }
 

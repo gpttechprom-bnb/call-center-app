@@ -4,14 +4,23 @@ namespace App\Support;
 
 use App\Models\BinotelApiCallCompleted;
 use App\Services\BinotelCallAudioCacheService;
+use App\Services\CallCenterCrmCallStatusStore;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class CallCenterPageData
 {
+    /**
+     * @var array<string, array{checked_at:?string, phones:array<string, array{phone_exist:bool,manager:?string,case:?string}>}|null>
+     */
+    private array $crmDayCache = [];
+
     public function __construct(
         private readonly BinotelCallAudioCacheService $audioCacheService,
+        private readonly CallCenterCrmCallStatusStore $crmCallStatusStore,
     ) {
     }
 
@@ -22,17 +31,36 @@ class CallCenterPageData
     public function build(
         CallCenterChecklistStore $checklistStore,
         CallCenterTranscriptionSettings $transcriptionSettings,
-        array $endpoints = []
+        array $endpoints = [],
+        ?string $clientCallsVersion = null,
+        bool $includeCalls = true,
     ): array {
         $transcriptionUploadLimitBytes = (int) config('call_center.transcription.max_upload_kb', 102400) * 1024;
+        $callsVersion = $this->resolveCallsVersion();
+        $callsIncluded = $includeCalls && $this->shouldIncludeCalls($callsVersion, $clientCallsVersion);
 
         return array_merge([
-            'calls' => $this->resolveCalls(),
+            'calls' => $callsIncluded ? $this->resolveCalls() : null,
+            'callsIncluded' => $callsIncluded,
+            'callsVersion' => $callsVersion,
             'checklists' => $checklistStore->all(),
             'defaultChecklistId' => $checklistStore->defaultId(),
             'transcriptionUploadLimitBytes' => $transcriptionUploadLimitBytes,
             'transcriptionSettings' => $transcriptionSettings->payload(),
         ], $endpoints);
+    }
+
+    public function callsVersion(): string
+    {
+        return $this->resolveCallsVersion();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function callPayload(BinotelApiCallCompleted $call): array
+    {
+        return $this->mapBinotelCall($call);
     }
 
     /**
@@ -64,6 +92,79 @@ class CallCenterPageData
         }
     }
 
+    private function shouldIncludeCalls(string $serverCallsVersion, ?string $clientCallsVersion): bool
+    {
+        $normalizedClientVersion = trim((string) $clientCallsVersion);
+
+        if ($normalizedClientVersion === '') {
+            return true;
+        }
+
+        return ! hash_equals($serverCallsVersion, $normalizedClientVersion);
+    }
+
+    private function resolveCallsVersion(): string
+    {
+        try {
+            $callAggregate = $this->aggregateTableSnapshot('binotel_api_call_completeds', [
+                'id' => 'max_id',
+                'updated_at' => 'max_updated_at',
+                'call_record_url_last_checked_at' => 'max_record_url_checked_at',
+                'local_audio_downloaded_at' => 'max_local_audio_downloaded_at',
+                'local_audio_expires_at' => 'max_local_audio_expires_at',
+                'alt_auto_started_at' => 'max_alt_auto_started_at',
+                'alt_auto_finished_at' => 'max_alt_auto_finished_at',
+                'crm_checked_at' => 'max_crm_checked_at',
+            ]);
+
+            if ($callAggregate === []) {
+                return 'calls:none';
+            }
+
+            $feedbackAggregate = $this->aggregateTableSnapshot('binotel_call_feedbacks', [
+                'updated_at' => 'max_updated_at',
+                'transcribed_at' => 'max_transcribed_at',
+                'evaluated_at' => 'max_evaluated_at',
+            ]);
+
+            $payload = [
+                'calls' => $callAggregate,
+                'feedback' => $feedbackAggregate,
+            ];
+
+            return sha1(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        } catch (Throwable) {
+            return 'calls:error';
+        }
+    }
+
+    /**
+     * @param  array<string, string>  $trackedColumns
+     * @return array<string, mixed>
+     */
+    private function aggregateTableSnapshot(string $table, array $trackedColumns): array
+    {
+        if (! Schema::hasTable($table)) {
+            return [];
+        }
+
+        $availableColumns = array_flip(Schema::getColumnListing($table));
+
+        $query = DB::table($table)->selectRaw('COUNT(*) as aggregate_count');
+
+        foreach ($trackedColumns as $column => $alias) {
+            if (! isset($availableColumns[$column])) {
+                continue;
+            }
+
+            $query->selectRaw(sprintf('MAX(`%s`) as `%s`', $column, $alias));
+        }
+
+        $snapshot = $query->first();
+
+        return $snapshot ? (array) $snapshot : [];
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -73,6 +174,7 @@ class CallCenterPageData
         $durationSeconds = max(0, (int) ($call->call_details_billsec ?? 0));
         $employeeName = trim((string) ($call->call_details_employee_name ?? ''));
         $internalNumber = trim((string) ($call->call_details_internal_number ?? ''));
+        $employeeDisplayName = trim((string) ($call->employee_display_name ?? ''));
         $employeeEmail = trim((string) ($call->call_details_employee_email ?? ''));
         $callerName = trim((string) ($call->call_details_customer_from_outside_name ?? ''));
         $trackingDomain = trim((string) ($call->call_details_call_tracking_domain ?? ''));
@@ -97,6 +199,7 @@ class CallCenterPageData
         $comparisonRuns = $this->feedbackComparisonRuns($feedback);
         $processedAt = $this->resolveProcessedAt($call, $feedback, $comparisonRuns);
         $feedbackSummary = trim((string) ($feedback->evaluation_summary ?? ''));
+        $crmStatus = $this->resolveCrmStatus($call, $startedAt);
         $summaryBits = [];
 
         if ($call->call_details_disposition) {
@@ -134,10 +237,16 @@ class CallCenterPageData
             'direction' => $this->resolveDirection($call),
             'caller' => trim((string) ($call->call_details_external_number ?? '')) ?: 'Невідомий номер',
             'callerMeta' => $callerName !== '' ? $callerName : $trackingDomain,
+            'crmPhoneExists' => $crmStatus['crmPhoneExists'],
+            'crmCase' => $crmStatus['crmCase'],
+            'crmManager' => $crmStatus['crmManager'],
+            'crmCheckedAt' => $crmStatus['crmCheckedAt'],
+            'crmLookupError' => $crmStatus['crmLookupError'],
+            'missingInCrm' => $crmStatus['missingInCrm'],
             'model' => $this->callModelLabel($evaluationMeta),
             'modelMeta' => $this->callModelMetaLabel($evaluationMeta),
             'modelSortValue' => $this->callModelSortValue($evaluationMeta),
-            'employee' => $employeeName !== '' ? $employeeName : ($internalNumber !== '' ? 'Внутрішній номер '.$internalNumber : 'Не визначено'),
+            'employee' => $employeeDisplayName !== '' ? $employeeDisplayName : ($employeeName !== '' ? $employeeName : ($internalNumber !== '' ? 'Внутрішній номер '.$internalNumber : 'Не визначено')),
             'employeeMeta' => $employeeEmail !== '' ? $employeeEmail : $internalNumber,
             'duration' => $this->formatDuration($durationSeconds),
             'time' => $startedAt?->format('H:i') ?? '',
@@ -162,6 +271,9 @@ class CallCenterPageData
             'audioFallbackUrl' => $fallbackRecordingUrl !== '' ? $fallbackRecordingUrl : null,
             'audioOverlayUrl' => $overlayRecordingUrl !== '' ? $overlayRecordingUrl : null,
             'generalCallId' => $call->call_details_general_call_id,
+            'interactionCount' => is_numeric($call->interaction_count ?? null)
+                ? max(0, (int) $call->interaction_count)
+                : null,
             'interactionNumber' => $interactionNumber >= 0 ? $interactionNumber : null,
             'recordingStatus' => $recordingStatus,
             'localAudioUrl' => $localAudioUrl,
@@ -181,6 +293,140 @@ class CallCenterPageData
             'altAutoStatus' => trim((string) ($call->alt_auto_status ?? '')) ?: null,
             'altAutoError' => trim((string) ($call->alt_auto_error ?? '')) ?: null,
         ];
+    }
+
+    /**
+     * @return array{crmPhoneExists:?bool,crmCase:?string,crmManager:?string,crmCheckedAt:?string,crmLookupError:?string,missingInCrm:?bool}
+     */
+    private function resolveCrmStatus(BinotelApiCallCompleted $call, ?CarbonImmutable $startedAt): array
+    {
+        $status = $this->crmCallStatusStore->statusPayload($call);
+
+        if ($this->hasResolvedCrmStatus($status)) {
+            return $status;
+        }
+
+        $phone = $this->crmCallStatusStore->phoneForCall($call);
+        $dayKey = $startedAt?->format('Y-m-d') ?? '';
+
+        if ($phone === '' || $dayKey === '') {
+            return $status;
+        }
+
+        $cachedDay = $this->crmCacheForDay($dayKey);
+        $cachedPhone = is_array($cachedDay['phones'] ?? null) ? ($cachedDay['phones'][$phone] ?? null) : null;
+
+        if (! is_array($cachedPhone)) {
+            return $status;
+        }
+
+        $phoneExists = (bool) ($cachedPhone['phone_exist'] ?? false);
+
+        return [
+            'crmPhoneExists' => $phoneExists,
+            'crmCase' => isset($cachedPhone['case']) ? trim((string) $cachedPhone['case']) ?: null : null,
+            'crmManager' => isset($cachedPhone['manager']) ? trim((string) $cachedPhone['manager']) ?: null : null,
+            'crmCheckedAt' => isset($cachedDay['checked_at']) ? trim((string) $cachedDay['checked_at']) ?: null : null,
+            'crmLookupError' => null,
+            'missingInCrm' => ! $phoneExists,
+        ];
+    }
+
+    /**
+     * @param  array{crmPhoneExists:?bool,crmCase:?string,crmManager:?string,crmCheckedAt:?string,crmLookupError:?string,missingInCrm:?bool}  $status
+     */
+    private function hasResolvedCrmStatus(array $status): bool
+    {
+        return $status['crmPhoneExists'] !== null
+            || $status['crmCase'] !== null
+            || $status['crmManager'] !== null
+            || $status['crmCheckedAt'] !== null
+            || $status['crmLookupError'] !== null
+            || $status['missingInCrm'] !== null;
+    }
+
+    /**
+     * @return array{checked_at:?string, phones:array<string, array{phone_exist:bool,manager:?string,case:?string}>}|null
+     */
+    private function crmCacheForDay(string $dayKey): ?array
+    {
+        if (array_key_exists($dayKey, $this->crmDayCache)) {
+            return $this->crmDayCache[$dayKey];
+        }
+
+        $path = 'call-center/alt/automation/calendar-crm/'.$dayKey.'.json';
+
+        try {
+            if (! Storage::disk('local')->exists($path)) {
+                return $this->crmDayCache[$dayKey] = null;
+            }
+
+            $payload = json_decode((string) Storage::disk('local')->get($path), true);
+            if (! is_array($payload)) {
+                return $this->crmDayCache[$dayKey] = null;
+            }
+
+            $phones = $this->extractPhonesFromCrmCachePayload($payload);
+            if ($phones === []) {
+                return $this->crmDayCache[$dayKey] = null;
+            }
+
+            return $this->crmDayCache[$dayKey] = [
+                'checked_at' => isset($payload['checked_at']) ? trim((string) $payload['checked_at']) ?: null : null,
+                'phones' => $phones,
+            ];
+        } catch (Throwable) {
+            return $this->crmDayCache[$dayKey] = null;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, array{phone_exist:bool,manager:?string,case:?string}>
+     */
+    private function extractPhonesFromCrmCachePayload(array $payload): array
+    {
+        $candidates = [];
+
+        if (is_array($payload['phones'] ?? null)) {
+            $candidates[] = $payload['phones'];
+        }
+
+        if (is_array($payload['results'] ?? null)) {
+            $candidates[] = $payload['results'];
+        }
+
+        $candidates[] = $payload;
+
+        foreach ($candidates as $candidate) {
+            $normalized = [];
+
+            foreach ($candidate as $phone => $item) {
+                if (! is_string($phone) || trim($phone) === '' || ! is_array($item)) {
+                    continue;
+                }
+
+                if (
+                    ! array_key_exists('phone_exist', $item)
+                    && ! array_key_exists('manager', $item)
+                    && ! array_key_exists('case', $item)
+                ) {
+                    continue;
+                }
+
+                $normalized[$phone] = [
+                    'phone_exist' => (bool) ($item['phone_exist'] ?? false),
+                    'manager' => isset($item['manager']) ? trim((string) $item['manager']) ?: null : null,
+                    'case' => isset($item['case']) ? trim((string) $item['case']) ?: null : null,
+                ];
+            }
+
+            if ($normalized !== []) {
+                return $normalized;
+            }
+        }
+
+        return [];
     }
 
     private function resolveBinotelStatus(BinotelApiCallCompleted $call, bool $hasLocalAudio = false): string
@@ -215,6 +461,11 @@ class CallCenterPageData
 
     private function resolveDirection(BinotelApiCallCompleted $call): string
     {
+        $normalizedDirection = trim((string) ($call->direction_key ?? ''));
+        if (in_array($normalizedDirection, ['in', 'out'], true)) {
+            return $normalizedDirection;
+        }
+
         $callType = trim((string) ($call->call_details_call_type ?? ''));
 
         return in_array($callType, ['0', 'in', 'incoming'], true) ? 'in' : 'out';

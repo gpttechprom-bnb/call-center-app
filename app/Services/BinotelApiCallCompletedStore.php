@@ -13,6 +13,12 @@ class BinotelApiCallCompletedStore
 {
     public const ZERO_INTERACTION_NUMBER = 0;
 
+    private ?bool $hasInteractionNumberColumnCache = null;
+
+    private ?bool $hasCrmStatusColumnsCache = null;
+
+    private ?bool $hasOptimizedLookupColumnsCache = null;
+
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -89,7 +95,7 @@ class BinotelApiCallCompletedStore
      */
     private function mapMainAttributes(array $payload, array $callDetails): array
     {
-        return [
+        $attributes = [
             'request_type' => $this->nullableString($payload['requestType'] ?? null),
             'attempts_counter' => $this->nullableInt($payload['attemptsCounter'] ?? null),
             'language' => $this->nullableString($payload['language'] ?? null),
@@ -138,6 +144,28 @@ class BinotelApiCallCompletedStore
             'call_details_link_to_call_record_overlay_in_my_business' => $this->nullableString($callDetails['linkToCallRecordOverlayInMyBusiness'] ?? null),
             'call_details_link_to_call_record_in_my_business' => $this->nullableString($callDetails['linkToCallRecordInMyBusiness'] ?? null),
         ];
+
+        if ($this->hasCrmStatusColumns()) {
+            $attributes['crm_normalized_phone'] = $this->normalizeCrmPhone(
+                data_get($callDetails, 'externalNumber') ?: data_get($callDetails, 'customerDataFromOutside.externalNumber')
+            ) ?: null;
+        }
+
+        if ($this->hasOptimizedLookupColumns()) {
+            $attributes['interaction_phone_key'] = $this->normalizeInteractionPhone($callDetails['externalNumber'] ?? null) ?: null;
+            $attributes['interaction_manager_key'] = $this->interactionManagerKey(
+                data_get($callDetails, 'employeeData.email'),
+                $callDetails['internalNumber'] ?? null,
+                data_get($callDetails, 'employeeData.name')
+            ) ?: null;
+            $attributes['employee_display_name'] = $this->employeeDisplayName(
+                data_get($callDetails, 'employeeData.name'),
+                $callDetails['internalNumber'] ?? null
+            );
+            $attributes['direction_key'] = $this->directionKey($callDetails['callType'] ?? null);
+        }
+
+        return $attributes;
     }
 
     /**
@@ -173,37 +201,33 @@ class BinotelApiCallCompletedStore
     }
 
     /**
-     * @return array{phone:string, manager_field:string, manager:string}|null
+     * @return array{phone:string, manager:string}|null
      */
     private function interactionGroup(BinotelApiCallCompleted $record): ?array
     {
-        $phone = $this->normalizeInteractionPhone($record->call_details_external_number ?? null);
+        $phone = $this->hasOptimizedLookupColumns()
+            ? trim((string) ($record->interaction_phone_key ?? ''))
+            : $this->normalizeInteractionPhone($record->call_details_external_number ?? null);
+        $manager = $this->hasOptimizedLookupColumns()
+            ? trim((string) ($record->interaction_manager_key ?? ''))
+            : $this->interactionManagerKey(
+                $record->call_details_employee_email ?? null,
+                $record->call_details_internal_number ?? null,
+                $record->call_details_employee_name ?? null
+            );
 
-        if ($phone === '') {
+        if ($phone === '' || $manager === '') {
             return null;
         }
 
-        foreach ([
-            'call_details_employee_email',
-            'call_details_internal_number',
-            'call_details_employee_name',
-        ] as $field) {
-            $manager = $this->normalizeInteractionToken($record->{$field} ?? null);
-
-            if ($manager !== '') {
-                return [
-                    'phone' => $phone,
-                    'manager_field' => $field,
-                    'manager' => $manager,
-                ];
-            }
-        }
-
-        return null;
+        return [
+            'phone' => $phone,
+            'manager' => $manager,
+        ];
     }
 
     /**
-     * @param  array{phone:string, manager_field:string, manager:string}|null  $group
+     * @param  array{phone:string, manager:string}|null  $group
      */
     private function recalculateInteractionNumbersForGroup(?array $group): void
     {
@@ -211,24 +235,32 @@ class BinotelApiCallCompletedStore
             return;
         }
 
-        $managerField = $group['manager_field'];
+        $query = BinotelApiCallCompleted::query()
+            ->with('historyItems');
 
-        $records = BinotelApiCallCompleted::query()
-            ->whereNotNull('call_details_external_number')
-            ->whereNotNull($managerField)
-            ->with('historyItems')
-            ->get([
+        if ($this->hasOptimizedLookupColumns()) {
+            $query
+                ->where('interaction_phone_key', $group['phone'])
+                ->where('interaction_manager_key', $group['manager']);
+        } else {
+            $query->whereNotNull('call_details_external_number');
+        }
+
+        $records = $query->get([
                 'id',
                 'call_details_start_time',
                 'call_details_external_number',
-                $managerField,
+                'call_details_employee_email',
+                'call_details_internal_number',
+                'call_details_employee_name',
                 'call_details_disposition',
                 'call_details_billsec',
                 'interaction_number',
+                'interaction_phone_key',
+                'interaction_manager_key',
             ])
             ->filter(fn (BinotelApiCallCompleted $call): bool => (
-                $this->normalizeInteractionPhone($call->call_details_external_number ?? null) === $group['phone']
-                && $this->normalizeInteractionToken($call->{$managerField} ?? null) === $group['manager']
+                $this->interactionGroup($call) === $group
             ))
             ->sort(function (BinotelApiCallCompleted $left, BinotelApiCallCompleted $right): int {
                 $leftTime = (int) ($left->call_details_start_time ?? 0);
@@ -280,6 +312,8 @@ class BinotelApiCallCompletedStore
                 'call_details_disposition',
                 'call_details_billsec',
                 'interaction_number',
+                'interaction_phone_key',
+                'interaction_manager_key',
             ]);
 
         $groups = [];
@@ -299,7 +333,7 @@ class BinotelApiCallCompletedStore
                 continue;
             }
 
-            $key = $group['phone'].'::'.$group['manager_field'].'::'.$group['manager'];
+            $key = $group['phone'].'::'.$group['manager'];
             $groups[$key]['group'] = $group;
             $groups[$key]['records'][] = $record;
         }
@@ -343,8 +377,8 @@ class BinotelApiCallCompletedStore
     }
 
     /**
-     * @param  array{phone:string, manager_field:string, manager:string}|null  $left
-     * @param  array{phone:string, manager_field:string, manager:string}|null  $right
+     * @param  array{phone:string, manager:string}|null  $left
+     * @param  array{phone:string, manager:string}|null  $right
      */
     private function sameInteractionGroup(?array $left, ?array $right): bool
     {
@@ -353,7 +387,33 @@ class BinotelApiCallCompletedStore
 
     private function hasInteractionNumberColumn(): bool
     {
-        return Schema::hasColumn('binotel_api_call_completeds', 'interaction_number');
+        if ($this->hasInteractionNumberColumnCache !== null) {
+            return $this->hasInteractionNumberColumnCache;
+        }
+
+        return $this->hasInteractionNumberColumnCache = Schema::hasColumn('binotel_api_call_completeds', 'interaction_number');
+    }
+
+    private function hasCrmStatusColumns(): bool
+    {
+        if ($this->hasCrmStatusColumnsCache !== null) {
+            return $this->hasCrmStatusColumnsCache;
+        }
+
+        return $this->hasCrmStatusColumnsCache = Schema::hasColumn('binotel_api_call_completeds', 'crm_normalized_phone');
+    }
+
+    private function hasOptimizedLookupColumns(): bool
+    {
+        if ($this->hasOptimizedLookupColumnsCache !== null) {
+            return $this->hasOptimizedLookupColumnsCache;
+        }
+
+        return $this->hasOptimizedLookupColumnsCache =
+            Schema::hasColumn('binotel_api_call_completeds', 'interaction_phone_key')
+            && Schema::hasColumn('binotel_api_call_completeds', 'interaction_manager_key')
+            && Schema::hasColumn('binotel_api_call_completeds', 'employee_display_name')
+            && Schema::hasColumn('binotel_api_call_completeds', 'direction_key');
     }
 
     private function isMeaningfulInteraction(BinotelApiCallCompleted $record): bool
@@ -392,6 +452,20 @@ class BinotelApiCallCompletedStore
     /**
      * @param  mixed  $value
      */
+    private function normalizeCrmPhone($value): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) ($value ?? '')) ?? '';
+
+        if (strlen($digits) === 12 && str_starts_with($digits, '380')) {
+            $digits = substr($digits, 2);
+        }
+
+        return strlen($digits) === 10 ? $digits : '';
+    }
+
+    /**
+     * @param  mixed  $value
+     */
     private function normalizeInteractionToken($value): string
     {
         $normalized = trim((string) ($value ?? ''));
@@ -403,6 +477,41 @@ class BinotelApiCallCompletedStore
         return function_exists('mb_strtolower')
             ? mb_strtolower($normalized, 'UTF-8')
             : strtolower($normalized);
+    }
+
+    private function interactionManagerKey($email, $internalNumber, $employeeName): string
+    {
+        foreach ([$email, $internalNumber, $employeeName] as $candidate) {
+            $normalized = $this->normalizeInteractionToken($candidate);
+
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return '';
+    }
+
+    private function employeeDisplayName($employeeName, $internalNumber): string
+    {
+        $name = trim((string) ($employeeName ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $internal = trim((string) ($internalNumber ?? ''));
+        if ($internal !== '') {
+            return 'Внутрішній номер '.$internal;
+        }
+
+        return 'Не визначено';
+    }
+
+    private function directionKey($callType): string
+    {
+        $normalized = trim((string) ($callType ?? ''));
+
+        return in_array($normalized, ['0', 'in', 'incoming'], true) ? 'in' : 'out';
     }
 
     /**
